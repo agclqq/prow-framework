@@ -34,7 +34,7 @@ func (a Project) Usage() string {
 `
 }
 func (a Project) Handle(ctx *prowjob.Context) {
-	mn, err := module.GetModuleName()
+	mn, err := module.GetName()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -531,7 +531,7 @@ func (a Project) createCommandRegister(ctx *prowjob.Context) error {
 	typeName := ""
 	receiver := ""
 	receiverType := "" + typeName
-	mn, err := module.GetModuleName()
+	mn, err := module.GetName()
 	if err != nil {
 		return err
 	}

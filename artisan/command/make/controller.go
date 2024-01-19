@@ -138,7 +138,7 @@ func createRouter(fileName string) error {
 func createControllerFile(ctlName, ctlPath, ctlType string) error {
 	ctlPath = strings.TrimRight(ctlPath, "/")
 	_, packageName := filepath.Split(ctlPath)
-	moduleName, err := module.GetModuleName()
+	moduleName, err := module.GetName()
 	if err != nil {
 		return err
 	}

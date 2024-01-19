@@ -7,8 +7,8 @@ import (
 
 var moduleName string
 
-// GetModuleName get module name
-func GetModuleName() (string, error) {
+// GetName get module name
+func GetName() (string, error) {
 	if moduleName != "" {
 		return moduleName, nil
 	}

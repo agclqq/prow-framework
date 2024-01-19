@@ -51,7 +51,7 @@ func (a Command) Handle(ctx *prowjob.Context) {
 		return
 	}
 
-	mn, err := module.GetModuleName()
+	mn, err := module.GetName()
 	if err != nil {
 		fmt.Println(err)
 		return

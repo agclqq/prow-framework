@@ -56,7 +56,7 @@ func createCommandFile(commandName, path string) error {
 	_, packageName := filepath.Split(path)
 	receiver := strings2.ToLowFirst(commandName[0:1])
 	receiverType := strings2.ToUpFirst(commandName)
-	moduleName, err := module.GetModuleName()
+	moduleName, err := module.GetName()
 	if err != nil {
 		return err
 	}

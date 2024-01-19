@@ -12,13 +12,13 @@ func TestGetModuleName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetModuleName()
+			got, err := GetName()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetModuleName() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("GetModuleName() got = %v, want %v", got, tt.want)
+				t.Errorf("GetName() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
