@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	file2 "github.com/agclqq/prow/file"
-	"github.com/agclqq/prow/prowjob/command"
+	file2 "github.com/agclqq/prow-framework/file"
+	"github.com/agclqq/prow-framework/prowjob/command"
 )
 
 func GetFullPath(defaultDir, sourcePath, fileName string) string {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agclqq/prow/times"
+	"github.com/agclqq/prow-framework/times"
 
 	"github.com/robfig/cron/v3"
 )

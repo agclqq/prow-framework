@@ -6,9 +6,9 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	clientV3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/agclqq/prow/confctr"
-	"github.com/agclqq/prow/confctr/consul"
-	"github.com/agclqq/prow/confctr/etcd"
+	"github.com/agclqq/prow-framework/confctr"
+	"github.com/agclqq/prow-framework/confctr/consul"
+	"github.com/agclqq/prow-framework/confctr/etcd"
 )
 
 type CacheType int

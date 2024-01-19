@@ -1,4 +1,4 @@
-module github.com/agclqq/prow
+module github.com/agclqq/prow-framework
 
 go 1.20
 

@@ -4,7 +4,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	clientV3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/agclqq/prow/confctr/manager"
+	"github.com/agclqq/prow-framework/confctr/manager"
 )
 
 func ex() {

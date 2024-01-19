@@ -3,7 +3,7 @@ package tablestruct
 import (
 	"strings"
 
-	strings2 "github.com/agclqq/prow/strings"
+	strings2 "github.com/agclqq/prow-framework/strings"
 
 	"gorm.io/gorm"
 )

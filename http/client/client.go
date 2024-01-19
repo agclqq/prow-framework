@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agclqq/prow/skywalking"
+	"github.com/agclqq/prow-framework/skywalking"
 
 	ginPluginsHttp "github.com/SkyAPM/go2sky/plugins/http"
 )

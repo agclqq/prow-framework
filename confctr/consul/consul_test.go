@@ -7,7 +7,7 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 
-	"github.com/agclqq/prow/confctr"
+	"github.com/agclqq/prow-framework/confctr"
 )
 
 func TestNew(t *testing.T) {

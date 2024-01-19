@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	file2 "github.com/agclqq/prow/file"
+	file2 "github.com/agclqq/prow-framework/file"
 
 	"gorm.io/driver/clickhouse"
 	"gorm.io/driver/mysql"
@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	mylogger "github.com/agclqq/prow/logger"
+	mylogger "github.com/agclqq/prow-framework/logger"
 )
 
 var dbMap map[string]*gorm.DB

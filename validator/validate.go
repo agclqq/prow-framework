@@ -9,7 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin/binding"
 
-	"github.com/agclqq/prow/dynamicstruct"
+	"github.com/agclqq/prow-framework/dynamicstruct"
 
 	"github.com/gin-gonic/gin"
 

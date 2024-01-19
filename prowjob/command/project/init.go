@@ -12,9 +12,9 @@ import (
 
 	"github.com/agclqq/prowjob"
 
-	"github.com/agclqq/prow/module"
-	"github.com/agclqq/prow/prowjob/command"
-	strings2 "github.com/agclqq/prow/strings"
+	"github.com/agclqq/prow-framework/module"
+	"github.com/agclqq/prow-framework/prowjob/command"
+	strings2 "github.com/agclqq/prow-framework/strings"
 )
 
 var (

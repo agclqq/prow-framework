@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agclqq/prow/arrays"
-	lt "github.com/agclqq/prow/times"
+	"github.com/agclqq/prow-framework/arrays"
+	lt "github.com/agclqq/prow-framework/times"
 
 	"github.com/gin-gonic/gin"
 )

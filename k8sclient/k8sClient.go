@@ -6,8 +6,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	pubErr "github.com/agclqq/prow/error"
-	"github.com/agclqq/prow/logger"
+	pubErr "github.com/agclqq/prow-framework/error"
+	"github.com/agclqq/prow-framework/logger"
 )
 
 // InitK8sClientConn 初始化k8s ClientSet

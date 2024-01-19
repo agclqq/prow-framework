@@ -5,9 +5,9 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/agclqq/prow/prowjob/command"
+	"github.com/agclqq/prow-framework/prowjob/command"
 
-	"github.com/agclqq/prow/db"
+	"github.com/agclqq/prow-framework/db"
 )
 
 // GetTableStruct 获取表结构

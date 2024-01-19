@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/agclqq/prowjob"
 
-	"github.com/agclqq/prow/prowjob/register"
+	"github.com/agclqq/prow-framework/prowjob/register"
 )
 
 func main() {

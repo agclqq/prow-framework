@@ -13,11 +13,11 @@ import (
 
 	"github.com/agclqq/prowjob"
 
-	"github.com/agclqq/prow/args"
-	"github.com/agclqq/prow/file"
-	"github.com/agclqq/prow/module"
-	"github.com/agclqq/prow/prowjob/command"
-	strings2 "github.com/agclqq/prow/strings"
+	"github.com/agclqq/prow-framework/args"
+	"github.com/agclqq/prow-framework/file"
+	"github.com/agclqq/prow-framework/module"
+	"github.com/agclqq/prow-framework/prowjob/command"
+	strings2 "github.com/agclqq/prow-framework/strings"
 )
 
 var defaultCommandDir = "app/console/command/"

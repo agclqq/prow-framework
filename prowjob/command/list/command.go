@@ -7,7 +7,7 @@ import (
 
 	"github.com/agclqq/prowjob"
 
-	"github.com/agclqq/prow/prettytable"
+	"github.com/agclqq/prow-framework/prettytable"
 )
 
 const FORMAT_DEFAULT_LENGTH = 5

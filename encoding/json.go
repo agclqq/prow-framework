@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/agclqq/prow/logger"
 	"github.com/tidwall/gjson"
+
+	"github.com/agclqq/prow-framework/logger"
 )
 
 // AnyToJsonStrList 结构体转 json string

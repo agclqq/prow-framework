@@ -18,7 +18,7 @@ import (
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/reporter"
 
-	"github.com/agclqq/prow/skywalking"
+	"github.com/agclqq/prow-framework/skywalking"
 )
 
 func TestHttpClient_Request(t *testing.T) {

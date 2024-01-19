@@ -6,7 +6,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	clientV3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/agclqq/prow/confctr"
+	"github.com/agclqq/prow-framework/confctr"
 )
 
 func TestNew(t *testing.T) {

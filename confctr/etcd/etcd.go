@@ -5,7 +5,7 @@ import (
 
 	clientV3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/agclqq/prow/confctr"
+	"github.com/agclqq/prow-framework/confctr"
 )
 
 type Client struct {

@@ -8,7 +8,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 
-	"github.com/agclqq/prow/confctr"
+	"github.com/agclqq/prow-framework/confctr"
 )
 
 //Values in the CC store cannot be larger than 512kb.

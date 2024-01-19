@@ -7,10 +7,10 @@ import (
 
 	"github.com/agclqq/prowjob"
 
-	strings2 "github.com/agclqq/prow/strings"
+	strings2 "github.com/agclqq/prow-framework/strings"
 
-	"github.com/agclqq/prow/args"
-	"github.com/agclqq/prow/prowjob/command"
+	"github.com/agclqq/prow-framework/args"
+	"github.com/agclqq/prow-framework/prowjob/command"
 )
 
 var defaultControllerDir = "app/http/controller/"

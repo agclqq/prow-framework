@@ -3,9 +3,9 @@ package register
 import (
 	"github.com/agclqq/prowjob"
 
-	"github.com/agclqq/prow/prowjob/command/list"
-	"github.com/agclqq/prow/prowjob/command/make"
-	"github.com/agclqq/prow/prowjob/command/project"
+	"github.com/agclqq/prow-framework/prowjob/command/list"
+	"github.com/agclqq/prow-framework/prowjob/command/make"
+	"github.com/agclqq/prow-framework/prowjob/command/project"
 )
 
 func Register(eng *prowjob.CommandEngine) {

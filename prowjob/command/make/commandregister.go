@@ -7,8 +7,8 @@ import (
 
 	"github.com/agclqq/prowjob"
 
-	"github.com/agclqq/prow/args"
-	"github.com/agclqq/prow/prowjob/command"
+	"github.com/agclqq/prow-framework/args"
+	"github.com/agclqq/prow-framework/prowjob/command"
 )
 
 var defaultCommandRegister = "app/console/register"

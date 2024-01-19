@@ -3,7 +3,7 @@ package router
 import (
 	"strings"
 
-	"github.com/agclqq/prow/http/restful"
+	"github.com/agclqq/prow-framework/http/restful"
 
 	"github.com/gin-gonic/gin"
 )

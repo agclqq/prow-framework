@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/agclqq/prow/cache"
-	predis "github.com/agclqq/prow/cache/redis"
+	"github.com/agclqq/prow-framework/cache"
+	predis "github.com/agclqq/prow-framework/cache/redis"
 )
 
 type CacheType int

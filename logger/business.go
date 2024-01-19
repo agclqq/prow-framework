@@ -11,8 +11,8 @@ import (
 
 	"github.com/SkyAPM/go2sky"
 
-	"github.com/agclqq/prow/skywalking"
-	"github.com/agclqq/prow/times"
+	"github.com/agclqq/prow-framework/skywalking"
+	"github.com/agclqq/prow-framework/times"
 
 	"github.com/sirupsen/logrus"
 )
