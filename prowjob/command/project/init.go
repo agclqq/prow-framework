@@ -624,7 +624,14 @@ func (a Project) formatFiles(ctx *prowjob.Context) error {
 	s, err := execCommand("gofmt", "-w", "-s", ".")
 	if err != nil {
 		fmt.Println(s)
-		return err
+	}
+	s, err = execCommand("go", "mod", "tidy")
+	if err != nil {
+		fmt.Println(s)
+	}
+	s, err = execCommand("goimports", "-local", moduleName, "-w", ".")
+	if err != nil {
+		fmt.Println(s)
 	}
 	return nil
 }
