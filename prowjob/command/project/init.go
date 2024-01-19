@@ -40,6 +40,14 @@ func (a Project) Handle(ctx *prowjob.Context) {
 		return
 	}
 	moduleName = mn
+
+	//更新项目依赖
+	err = a.tidy(ctx)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	//创建目录结构
 	err = a.createDirs(ctx)
 	if err != nil {
@@ -620,18 +628,30 @@ func (a Project) createDemoAggVo(ctx *prowjob.Context) error {
 	return command.CreateTemplateFile("domain/demoagg/vo.go", command.CommonTemplate, data)
 }
 
+func (a Project) tidy(ctx *prowjob.Context) error {
+	s, err := execCommand("go", "mod", "tidy")
+	if err != nil {
+		fmt.Println(s)
+		return err
+	}
+	return nil
+}
+
 func (a Project) formatFiles(ctx *prowjob.Context) error {
 	s, err := execCommand("gofmt", "-w", "-s", ".")
 	if err != nil {
 		fmt.Println(s)
+		return err
 	}
 	s, err = execCommand("go", "mod", "tidy")
 	if err != nil {
 		fmt.Println(s)
+		return err
 	}
 	s, err = execCommand("goimports", "-local", moduleName, "-w", ".")
 	if err != nil {
 		fmt.Println(s)
+		return err
 	}
 	return nil
 }
