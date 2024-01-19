@@ -200,7 +200,7 @@ func (a Project) createHttpd(ctx *prowjob.Context) error {
 			{ImportName: moduleName + "/config"},
 			{ImportName: frameworkModuleName + "/logger"},
 			{Alias: "_", ImportName: frameworkModuleName + "/validator"},
-			{Alias: "_", ImportName: "github.com/apache/skywalking-go"},
+			{ImportName: "github.com/spf13/cast"},
 			{ImportName: "github.com/gin-gonic/gin"},
 		},
 	}
@@ -400,7 +400,6 @@ func (a Project) createGrpc(ctx *prowjob.Context) error {
 			{ImportName: "google.golang.org/grpc"},
 			{ImportName: "google.golang.org/grpc/keepalive"},
 			{Alias: "grpcRouter", ImportName: moduleName + "/app/grpc/router"},
-			{ImportName: moduleName + "/app/middleware"},
 			{ImportName: moduleName + "/config"},
 		},
 	}
@@ -496,7 +495,7 @@ func (a Project) createCommandCmd(ctx *prowjob.Context) error {
 
 	data := command.TemplateData{
 		PackageName: "main",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {Alias: "prowjobreg", ImportName: "github.com/agclqq/prow-framework/prowjob/register"}, {ImportName: "github.com/agclqq/prow-framework/app/console/register"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {Alias: "prowjobreg", ImportName: frameworkModuleName + "/prowjob/register"}, {ImportName: moduleName + "/app/console/register"}},
 		Consts:      nil,
 		Vars:        nil,
 		Types:       nil,
@@ -517,7 +516,7 @@ func (a Project) createCommand(ctx *prowjob.Context) error {
 
 	data := command.TemplateData{
 		PackageName: "command",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {ImportName: "fmt"}},
 		Consts:      nil,
 		Vars:        nil,
 		Types:       []command.TypeTemplate{{TypeName: typeName}},
