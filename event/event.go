@@ -77,15 +77,15 @@ func Run() {
 func consumeEventChan(k string, ec *eventChan) {
 	for {
 		data := <-ec.ch
-		if rev, ok := std.receiverMap[k]; ok {
-			for _, vv := range rev { //单个的receiver
+		if revs, ok := std.receiverMap[k]; ok {
+			for _, rev := range revs { //单个的receiver
 				for {
-					if vv.concurrencyNum < vv.maxConcurrency {
-						go func(vvv *receiver) {
-							atomic.AddInt32(&vvv.concurrencyNum, 1)
-							vvv.handler(data.ctx, data.data)
-							atomic.AddInt32(&vvv.concurrencyNum, -1)
-						}(vv)
+					if rev.concurrencyNum < rev.maxConcurrency {
+						go func(v *receiver) {
+							atomic.AddInt32(&v.concurrencyNum, 1)
+							v.handler(data.ctx, data.data)
+							atomic.AddInt32(&v.concurrencyNum, -1)
+						}(rev)
 						break
 					} else {
 						time.Sleep(10 * time.Microsecond)
