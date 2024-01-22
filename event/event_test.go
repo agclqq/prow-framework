@@ -9,36 +9,46 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	chanName := make([]string, 0)
-	chanName = append(chanName, "c1", "c2", "c3", "c4", "c5")
+	chanName := make(map[string]int)
+	chanName["c1"] = 1000
+	chanName["c2"] = 1000
+	chanName["c3"] = 1000
+	chanName["c4"] = 1000
+	chanName["c5"] = 1000
 
-	InitChannel(chanName...)
-	Register("c1", &listen1{}, 3)
-	Register("c2", &listen2{}, 3)
-	Register("c3", &listen3{}, 3)
-	Register("c4", &listen4{}, 3)
-	Register("c5", &listen5{}, 3)
-	Register("c1", &listen11{}, 3)
-	Register("c2", &listen12{}, 3)
-	Register("c3", &listen13{}, 3)
-	Register("c4", &listen14{}, 3)
-	Register("c5", &listen15{}, 3)
-	Register("c1", &listen21{}, 3)
-	Register("c2", &listen22{}, 3)
-	Register("c3", &listen23{}, 3)
-	Register("c4", &listen24{}, 3)
-	Register("c5", &listen25{}, 3)
-	Register("c1", &listen31{}, 3)
-	Register("c2", &listen32{}, 3)
-	Register("c3", &listen33{}, 3)
-	Register("c4", &listen34{}, 3)
-	Register("c5", &listen35{}, 3)
+	for k, v := range chanName {
+		err := InitEnvName(k, v)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
 
+	Register(&listen1{})
+	Register(&listen2{})
+	Register(&listen3{})
+	Register(&listen4{})
+	Register(&listen5{})
+	Register(&listen11{})
+	Register(&listen12{})
+	Register(&listen13{})
+	Register(&listen14{})
+	Register(&listen15{})
+	Register(&listen21{})
+	Register(&listen22{})
+	Register(&listen23{})
+	Register(&listen24{})
+	Register(&listen25{})
+	Register(&listen31{})
+	Register(&listen32{})
+	Register(&listen33{})
+	Register(&listen34{})
+	Register(&listen35{})
 	Run()
 
-	for _, v := range chanName {
+	for k, _ := range chanName {
 		for i := 0; i < 10; i++ {
-			err := Fire(v, []byte(strconv.Itoa(i)))
+			err := Fire(k, []byte(strconv.Itoa(i)))
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -51,8 +61,11 @@ var todoCtx = context.TODO()
 
 type listen1 struct{}
 
-func (*listen1) GetName() string {
-	return "event:listen1"
+func (*listen1) ListenName() string {
+	return "c1"
+}
+func (*listen1) Concurrence() int64 {
+	return 3
 }
 func (*listen1) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 1,data: %s\n", string(data))
@@ -60,8 +73,11 @@ func (*listen1) Handle(todoctx context.Context, data []byte) {
 
 type listen2 struct{}
 
-func (*listen2) GetName() string {
-	return "event:listen2"
+func (*listen2) ListenName() string {
+	return "c2"
+}
+func (*listen2) Concurrence() int64 {
+	return 3
 }
 func (*listen2) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 2,data: %s\n", string(data))
@@ -69,8 +85,11 @@ func (*listen2) Handle(todoctx context.Context, data []byte) {
 
 type listen3 struct{}
 
-func (*listen3) GetName() string {
-	return "event:listen3"
+func (*listen3) ListenName() string {
+	return "c3"
+}
+func (*listen3) Concurrence() int64 {
+	return 3
 }
 func (*listen3) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 3,data: %s\n", string(data))
@@ -78,8 +97,11 @@ func (*listen3) Handle(todoctx context.Context, data []byte) {
 
 type listen4 struct{}
 
-func (*listen4) GetName() string {
-	return "event:listen4"
+func (*listen4) ListenName() string {
+	return "c4"
+}
+func (*listen4) Concurrence() int64 {
+	return 3
 }
 func (*listen4) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 4,data: %s\n", string(data))
@@ -87,8 +109,11 @@ func (*listen4) Handle(todoctx context.Context, data []byte) {
 
 type listen5 struct{}
 
-func (*listen5) GetName() string {
+func (*listen5) ListenName() string {
 	return "event:listen5"
+}
+func (*listen5) Concurrence() int64 {
+	return 3
 }
 func (*listen5) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 5,data: %s\n", string(data))
@@ -96,8 +121,11 @@ func (*listen5) Handle(todoctx context.Context, data []byte) {
 
 type listen11 struct{}
 
-func (*listen11) GetName() string {
-	return "event:listen11"
+func (*listen11) ListenName() string {
+	return "c1"
+}
+func (*listen11) Concurrence() int64 {
+	return 3
 }
 func (*listen11) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 11,data: %s\n", string(data))
@@ -105,8 +133,11 @@ func (*listen11) Handle(todoctx context.Context, data []byte) {
 
 type listen12 struct{}
 
-func (*listen12) GetName() string {
-	return "event:listen12"
+func (*listen12) ListenName() string {
+	return "c2"
+}
+func (*listen12) Concurrence() int64 {
+	return 3
 }
 func (*listen12) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 12,data: %s\n", string(data))
@@ -114,8 +145,11 @@ func (*listen12) Handle(todoctx context.Context, data []byte) {
 
 type listen13 struct{}
 
-func (*listen13) GetName() string {
-	return "event:listen13"
+func (*listen13) ListenName() string {
+	return "c3"
+}
+func (*listen13) Concurrence() int64 {
+	return 3
 }
 func (*listen13) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 13,data: %s\n", string(data))
@@ -123,8 +157,11 @@ func (*listen13) Handle(todoctx context.Context, data []byte) {
 
 type listen14 struct{}
 
-func (*listen14) GetName() string {
-	return "event:listen14"
+func (*listen14) ListenName() string {
+	return "c4"
+}
+func (*listen14) Concurrence() int64 {
+	return 3
 }
 func (*listen14) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 14,data: %s\n", string(data))
@@ -132,8 +169,11 @@ func (*listen14) Handle(todoctx context.Context, data []byte) {
 
 type listen15 struct{}
 
-func (*listen15) GetName() string {
-	return "event:listen15"
+func (*listen15) ListenName() string {
+	return "c5"
+}
+func (*listen15) Concurrence() int64 {
+	return 3
 }
 func (*listen15) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 15,data: %s\n", string(data))
@@ -141,8 +181,11 @@ func (*listen15) Handle(todoctx context.Context, data []byte) {
 
 type listen21 struct{}
 
-func (*listen21) GetName() string {
-	return "event:listen21"
+func (*listen21) ListenName() string {
+	return "c1"
+}
+func (*listen21) Concurrence() int64 {
+	return 3
 }
 func (*listen21) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 21,data: %s\n", string(data))
@@ -150,8 +193,11 @@ func (*listen21) Handle(todoctx context.Context, data []byte) {
 
 type listen22 struct{}
 
-func (*listen22) GetName() string {
-	return "event:listen22"
+func (*listen22) ListenName() string {
+	return "c2"
+}
+func (*listen22) Concurrence() int64 {
+	return 3
 }
 func (*listen22) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 22,data: %s\n", string(data))
@@ -159,8 +205,11 @@ func (*listen22) Handle(todoctx context.Context, data []byte) {
 
 type listen23 struct{}
 
-func (*listen23) GetName() string {
-	return "event:listen23"
+func (*listen23) ListenName() string {
+	return "c3"
+}
+func (*listen23) Concurrence() int64 {
+	return 3
 }
 func (*listen23) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 23,data: %s\n", string(data))
@@ -168,8 +217,11 @@ func (*listen23) Handle(todoctx context.Context, data []byte) {
 
 type listen24 struct{}
 
-func (*listen24) GetName() string {
-	return "event:listen24"
+func (*listen24) ListenName() string {
+	return "c4"
+}
+func (*listen24) Concurrence() int64 {
+	return 3
 }
 func (*listen24) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 24,data: %s\n", string(data))
@@ -177,8 +229,11 @@ func (*listen24) Handle(todoctx context.Context, data []byte) {
 
 type listen25 struct{}
 
-func (*listen25) GetName() string {
-	return "event:listen25"
+func (*listen25) ListenName() string {
+	return "c5"
+}
+func (*listen25) Concurrence() int64 {
+	return 3
 }
 func (*listen25) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 25,data: %s\n", string(data))
@@ -186,8 +241,11 @@ func (*listen25) Handle(todoctx context.Context, data []byte) {
 
 type listen31 struct{}
 
-func (*listen31) GetName() string {
-	return "event:listen31"
+func (*listen31) ListenName() string {
+	return "c1"
+}
+func (*listen31) Concurrence() int64 {
+	return 3
 }
 func (*listen31) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 31,data: %s\n", string(data))
@@ -195,8 +253,11 @@ func (*listen31) Handle(todoctx context.Context, data []byte) {
 
 type listen32 struct{}
 
-func (*listen32) GetName() string {
-	return "event:listen32"
+func (*listen32) ListenName() string {
+	return "c2"
+}
+func (*listen32) Concurrence() int64 {
+	return 3
 }
 func (*listen32) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 32,data: %s\n", string(data))
@@ -204,8 +265,11 @@ func (*listen32) Handle(todoctx context.Context, data []byte) {
 
 type listen33 struct{}
 
-func (*listen33) GetName() string {
-	return "event:listen33"
+func (*listen33) ListenName() string {
+	return "c3"
+}
+func (*listen33) Concurrence() int64 {
+	return 3
 }
 func (*listen33) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 33,data: %s\n", string(data))
@@ -213,8 +277,11 @@ func (*listen33) Handle(todoctx context.Context, data []byte) {
 
 type listen34 struct{}
 
-func (*listen34) GetName() string {
-	return "event:listen34"
+func (*listen34) ListenName() string {
+	return "c4"
+}
+func (*listen34) Concurrence() int64 {
+	return 3
 }
 func (*listen34) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 34,data: %s\n", string(data))
@@ -222,8 +289,11 @@ func (*listen34) Handle(todoctx context.Context, data []byte) {
 
 type listen35 struct{}
 
-func (*listen35) GetName() string {
-	return "event:listen35"
+func (*listen35) ListenName() string {
+	return "c5"
+}
+func (*listen35) Concurrence() int64 {
+	return 3
 }
 func (*listen35) Handle(todoctx context.Context, data []byte) {
 	fmt.Printf("this is listen 31,data: %s\n", string(data))

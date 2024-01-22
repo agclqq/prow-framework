@@ -59,18 +59,18 @@ func InitEnvName(name string, capacity int) error {
 // Register 监听者注册
 func Register(event Eventer) {
 	var concurrentNum int64 = 1
-	if event.GetConcurrence() > 1 {
-		concurrentNum = event.GetConcurrence()
+	if event.Concurrence() > 1 {
+		concurrentNum = event.Concurrence()
 	}
 	r := &receiver{
-		name:           event.GetName(),
+		name:           event.ListenName(),
 		handler:        event.Handle,
 		concurrencyNum: 0,
 		maxConcurrency: concurrentNum,
 	}
 	std.mu.Lock()
 	defer std.mu.Unlock()
-	std.receiverMap[event.GetName()] = append(std.receiverMap[event.GetName()], r)
+	std.receiverMap[event.ListenName()] = append(std.receiverMap[event.ListenName()], r)
 }
 
 // Run event开始

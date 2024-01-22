@@ -2,23 +2,31 @@
 event主要是为了解耦业务逻辑，实现一个事件，多个业务消费的模型。event基于channel，默认监听队列容量为1000。
 
 使用方式：
-1. **事件名配置**：在.env中配置event_names，以英文逗号分隔
-2. **事件消费配置**：默认在application/event/中新增事件消费文件，当然也可以放其他目录，需实现以下接口：
+1. **事件名初始化**：
+
+注意：env name不能为空，且不重复；capacity为队列容量，默认为1000
    ```go
-    type Eventer interface { 
-        GetName() string
-        Handle(data []byte)
-    }
+   event.InitEnvName(name string, capacity int)
    ```
-3. **事件注册**：在provider/event.go中配置要消费事件的处理方法，如下：
-    ```go
-    //事件消费的默认并发数量为1
-    event.Register("test", &handler.Test{})
-   
-    //修改事件消费并发数量
-    event.Register("test", &handler.Test{}, 3)
-    ```
+2. **事件消费配置**：
+
+事件消费者可以类比为队列中的消费者或广播接收者。事件消费者需实现Eventer接口，如下：
+   ```go
+   type Eventer interface {
+      ListenName() string
+      Concurrence() int64
+      Handle(ctx context.Context, data []byte)
+   }
+   ```
+3. **事件注册**：
+
+事件消费者需要将自己注册到需要消费的事件中，如下：
+   ```go
+   event.Register(&handler.Test{})
+   ```
 4. **事件触发**：
+
+事件触发者可以类比为队列中的生产者或广播发送者。事件触发者通过事件名触发事件，如下：
    ```go
       event.Fire("test", []byte("event message!"))
    ```
