@@ -50,20 +50,20 @@ func InitChannel(names ...string) {
 }
 
 // Register 监听者注册
-func Register(channelName string, event Eventer, concurrences ...int32) {
-	var concurrency int32 = 1
-	if len(concurrences) > 0 && concurrences[0] > 1 {
-		concurrency = concurrences[0]
+func Register(event Eventer) {
+	var concurrentNum int32 = 1
+	if event.GetConcurrence() > 1 {
+		concurrentNum = event.GetConcurrence()
 	}
 	r := &receiver{
 		name:           event.GetName(),
 		handler:        event.Handle,
 		concurrencyNum: 0,
-		maxConcurrency: concurrency,
+		maxConcurrency: concurrentNum,
 	}
 	std.mu.Lock()
 	defer std.mu.Unlock()
-	std.receiverMap[channelName] = append(std.receiverMap[channelName], r)
+	std.receiverMap[event.GetName()] = append(std.receiverMap[event.GetName()], r)
 }
 
 // Run event开始
