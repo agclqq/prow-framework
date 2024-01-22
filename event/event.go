@@ -13,8 +13,8 @@ type receiver struct {
 	mu             sync.Mutex
 	name           string
 	handler        Handle //回调方法
-	concurrencyNum int32  //当前异步回调并行数量
-	maxConcurrency int32  //最大异步回调并行数量
+	concurrencyNum int64  //当前异步回调并行数量
+	maxConcurrency int64  //最大异步回调并行数量
 }
 type eventMsg struct {
 	ctx  context.Context
@@ -36,22 +36,29 @@ var std = &Event{
 	receiverMap: make(map[string][]*receiver, 8),
 }
 
-// InitChannel 初始化支持的channel
-func InitChannel(names ...string) {
+// InitEnvName 初始化事件名称
+func InitEnvName(name string, capacity int) error {
 	std.mu.Lock()
 	defer std.mu.Unlock()
-	for _, name := range names {
-		if _, ok := std.eventMap[name]; !ok {
-			std.eventMap[name] = &eventChan{
-				ch: make(chan *eventMsg, 1000),
-			}
-		}
+	if name == "" {
+		return errors.New("name is empty")
 	}
+	if capacity <= 0 {
+		capacity = 1000
+	}
+	if _, ok := std.eventMap[name]; !ok {
+		std.eventMap[name] = &eventChan{
+			ch: make(chan *eventMsg, capacity),
+		}
+	} else {
+		return errors.New("name is exist")
+	}
+	return nil
 }
 
 // Register 监听者注册
 func Register(event Eventer) {
-	var concurrentNum int32 = 1
+	var concurrentNum int64 = 1
 	if event.GetConcurrence() > 1 {
 		concurrentNum = event.GetConcurrence()
 	}
@@ -82,9 +89,9 @@ func consumeEventChan(k string, ec *eventChan) {
 				for {
 					if rev.concurrencyNum < rev.maxConcurrency {
 						go func(v *receiver) {
-							atomic.AddInt32(&v.concurrencyNum, 1)
+							atomic.AddInt64(&v.concurrencyNum, 1)
 							v.handler(data.ctx, data.data)
-							atomic.AddInt32(&v.concurrencyNum, -1)
+							atomic.AddInt64(&v.concurrencyNum, -1)
 						}(rev)
 						break
 					} else {
