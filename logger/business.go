@@ -61,7 +61,7 @@ func New(opts ...Option) *BusinessLog {
 		PrettyPrint:       false,
 	}
 	ln.SetOutput(os.Stdout)
-	lg := &BusinessLog{Logger: ln}
+	lg := &BusinessLog{Logger: ln, entry: logrus.NewEntry(ln)}
 	for _, opt := range opts {
 		opt(lg)
 	}
@@ -296,11 +296,12 @@ func withFileLine(bs *BusinessLog) {
 	}
 }
 func withTrace(bs *BusinessLog) {
-	traceId := skywalking.GetTraceId(bs.ctx)
-	if traceId != go2sky.EmptyTraceID {
-		bs.entry.WithField("traceId", traceId)
+	if bs.withTrace {
+		traceId := skywalking.GetTraceId(bs.ctx)
+		if traceId != go2sky.EmptyTraceID {
+			bs.entry.WithField("traceId", traceId)
+		}
 	}
-
 }
 func withFields(bs *BusinessLog) *logrus.Entry {
 	if bs.entry == nil {
