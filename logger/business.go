@@ -44,6 +44,7 @@ const knownLogrusFrames int = 4
 
 var minimumCallerDepth = 1
 var currentPackage = "github.com/agclqq/prow-framework/logger"
+var binOfDir = getDirOfBin()
 var businessOnce sync.Once
 
 type Option func(l *BusinessLog)
@@ -67,6 +68,12 @@ func New(opts ...Option) *BusinessLog {
 	}
 	return lg
 }
+
+func getDirOfBin() string {
+	dir, _ := os.Getwd()
+	return dir + string(os.PathSeparator)
+}
+
 func WithContext(ctx context.Context) Option {
 	return func(l *BusinessLog) {
 		l.ctx = ctx
@@ -110,92 +117,6 @@ func WithTrace(b bool) Option {
 		l.withTrace = b
 	}
 }
-
-//func (bs *BusinessLog) WithContext(ctx context.Context) *BusinessLog {
-//	bs.ctx = ctx
-//	return bs
-//}
-//
-//func (bs *BusinessLog) WithFile(file string, retain uint) *BusinessLog {
-//	if retain <= 0 {
-//		retain = DefaultRetain
-//	}
-//	writer, err := RotateDailyLog(file, retain)
-//	if err != nil {
-//		_ = fmt.Errorf("%s", err)
-//	}
-//	bs.Logger.SetOutput(writer)
-//	return bs
-//}
-//func (bs *BusinessLog) WithLevel(level LogLevel) {
-//	if level, err := logrus.ParseLevel(string(level)); err != nil {
-//		bs.Logger.SetLevel(level)
-//	}
-//}
-//
-//func (bs *BusinessLog) WithLine(b bool) *BusinessLog {
-//	bs.withLine = b
-//	return bs
-//}
-//func (bs *BusinessLog) WithField(key string, value interface{}) *BusinessLog {
-//	bs.fields = append(bs.fields, map[string]interface{}{key: value})
-//	return bs
-//}
-//func (bs *BusinessLog) WithTrace(b bool) *BusinessLog {
-//	bs.withTrace = b
-//	return bs
-//}
-
-//func NewStdoutLog() *BusinessLog {
-//	ln := logrus.New()
-//	ln.SetReportCaller(false) //启用后，请求定位不准
-//	ln.Formatter = &logrus.JSONFormatter{
-//		TimestampFormat:   times.FormatDatetimeMicro,
-//		DisableTimestamp:  false,
-//		DisableHTMLEscape: true,
-//		DataKey:           "",
-//		FieldMap:          nil,
-//		CallerPrettyfier:  nil,
-//		PrettyPrint:       false,
-//	}
-//	ln.SetOutput(os.Stdout)
-//	BusinessLogger = &BusinessLog{Logger: ln}
-//	return BusinessLogger
-//}
-//
-//func NewBusinessLog() *BusinessLog {
-//	ln := logrus.New()
-//	ln.SetReportCaller(false) //启用后，请求定位不准
-//	ln.Formatter = &logrus.JSONFormatter{
-//		TimestampFormat:   times.FormatDatetimeMicro,
-//		DisableTimestamp:  false,
-//		DisableHTMLEscape: true,
-//		DataKey:           "",
-//		FieldMap:          nil,
-//		CallerPrettyfier:  nil,
-//		PrettyPrint:       false,
-//	}
-//	businessLog := config.GetLog("business")
-//
-//	//f, err := file.OpenOrCreate(businessLog["file"])
-//	//if err != nil {
-//	//	panic(err)
-//	//}
-//	retain, err := strconv.Atoi(businessLog["retain"])
-//	if err != nil {
-//		retain = DefaultRetain
-//	}
-//	writer, err := RotateDailyLog(businessLog["file"], uint(retain))
-//	if err != nil {
-//		_ = fmt.Errorf("%s", err)
-//	}
-//	ln.SetOutput(writer)
-//	if level, err := logrus.ParseLevel(businessLog["level"]); err != nil {
-//		ln.SetLevel(level)
-//	}
-//	BusinessLogger = &BusinessLog{Logger: ln}
-//	return BusinessLogger
-//}
 
 func businessLogCaller() *runtime.Frame {
 	// cache this package's fully-qualified name
@@ -292,7 +213,9 @@ func (bs *BusinessLog) Tracef(format string, v ...interface{}) {
 func withFileLine(bs *BusinessLog) {
 	if bs.withLine {
 		frame := businessLogCaller()
-		bs.entry.WithField("file", frame.File+":"+strconv.Itoa(frame.Line))
+		filepath := strings.Replace(frame.File, binOfDir, "", 1)
+		entry := bs.entry.WithField("file", filepath+":"+strconv.Itoa(frame.Line))
+		bs.entry = entry
 	}
 }
 func withTrace(bs *BusinessLog) {
