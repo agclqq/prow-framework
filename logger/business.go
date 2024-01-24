@@ -94,7 +94,7 @@ func WithFile(file string, retain uint) Option {
 }
 func WithLevel(level LogLevel) Option {
 	return func(l *BusinessLog) {
-		if level, err := logrus.ParseLevel(string(level)); err != nil {
+		if level, err := logrus.ParseLevel(string(level)); err == nil {
 			l.Logger.SetLevel(level)
 		}
 	}
