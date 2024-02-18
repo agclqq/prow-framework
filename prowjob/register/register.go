@@ -11,7 +11,7 @@ import (
 func Register(eng *prowjob.CommandEngine) {
 	eng.Add(project.Project{})
 	eng.Add(make.Controller{}, "create controller, usage:artisan make:controller controllerName path [notresource]")
-	//eng.Add(make.Model{}, "create model, usage:artisan make:model modelName path")
+	eng.Add(make.Model{}, "create model, usage:artisan make:model modelName path")
 	eng.Add(make.Command{})
 	eng.Add(list.Command{})
 	eng.Add(make.CommandRegister{})

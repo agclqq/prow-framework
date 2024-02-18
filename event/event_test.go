@@ -46,7 +46,7 @@ func TestRun(t *testing.T) {
 	Register(&listen35{})
 	Run()
 
-	for k, _ := range chanName {
+	for k := range chanName {
 		for i := 0; i < 10; i++ {
 			err := Fire(k, []byte(strconv.Itoa(i)))
 			if err != nil {

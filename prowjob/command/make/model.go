@@ -3,23 +3,20 @@ package make
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/agclqq/prowjob"
 
 	"github.com/agclqq/prow-framework/args"
-	"github.com/agclqq/prow-framework/artisan"
-	"github.com/agclqq/prow-framework/config"
+	"github.com/agclqq/prow-framework/codefmt"
 	"github.com/agclqq/prow-framework/db"
-	file2 "github.com/agclqq/prow-framework/file"
 	"github.com/agclqq/prow-framework/prowjob/command"
 	strings2 "github.com/agclqq/prow-framework/strings"
 
 	"gorm.io/gorm"
 )
 
-const DEFAULT_MODEL_DIR = "infrastructure/repository/"
+const DEFAULT_MODEL_DIR = "infra/repo/"
 
 type Model struct {
 }
@@ -37,36 +34,63 @@ func (a Model) GetCommand() string {
 }
 func (a Model) Usage() string {
 	return `Usage of make:model:
- make:model configName tableName [path]
-   if the 'path' is not given,the default is 'infrastructure/repository/${driver}/${db}'
+ make:model dbType dns tableName [--alias] [--path]
+   alias affects the package name and defaults is db name
+   if the 'path' is not given,the default is '` + DEFAULT_MODEL_DIR + `${driver}/${db}'
 `
 }
 func (a Model) Handle(ctx *prowjob.Context) {
 	if len(ctx.Param) < 3 {
-		fmt.Printf("%s \n %s", artisan.ERROR_PARAM_NUM, a.Usage())
+		fmt.Printf("%s \n %s", command.ERROR_PARAM_NUM, a.Usage())
+		return
 	}
 	pparam := args.TidyParmaWithPrefix(ctx.Param)
 	if _, ok := pparam["h"]; ok {
 		fmt.Println(a.Usage())
 		return
 	}
-	connConfig := ctx.Param[1]
+	dbType := ctx.Param[0]
+	dsn := ctx.Param[1]
 	tableName := ctx.Param[2]
-	path := ""
-	if len(ctx.Param) == 4 {
-		path = ctx.Param[3]
-	}
-	f, err := getModelFullPath(connConfig, tableName, path)
+
+	dbConfDsn, err := db.DsnDecode(dbType, dsn)
 	if err != nil {
-		fmt.Printf(command.NO_DB_CONFIG+" \n", connConfig)
+		fmt.Println(err)
+		return
 	}
-	if !CheckOverwrite(f) { //Abort if the file exists and the user does not allow it to be overwritten
+	dbConf := make(map[string]string)
+	dbConf["driver"] = dbConfDsn.Type
+	dbConf["host"] = dbConfDsn.Host
+	dbConf["port"] = dbConfDsn.Port
+	dbConf["user"] = dbConfDsn.User
+	dbConf["password"] = dbConfDsn.Password
+	dbConf["db"] = dbConfDsn.Dbname
+	dbConf["charset"] = dbConfDsn.Charset
+	dbConf["alias"] = pparam["alias"]
+	dbConf["timezone"] = dbConfDsn.TimeZone
+	dbConf["alias"] = pparam["alias"]
+	if dbConf["alias"] == "" {
+		dbConf["alias"] = dbConf["db"]
+	}
+	path := pparam["path"]
+	fullPath, err := getModelFullPath(dbConf, tableName, path)
+	if err != nil {
+		fmt.Printf(command.NO_DB_CONFIG+" \n", dbType)
+		return
+	}
+	if !CheckOverwrite(fullPath) { //Abort if the file exists and the user does not allow it to be overwritten
 		return
 	}
 
-	descs := getTableStruct(connConfig, tableName)
+	descs := getTableStruct(dbType, dbConf, tableName)
 
-	err = createModelFile(connConfig, tableName, f, descs)
+	err = createModelFile(dbConf, fullPath, descs)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ff, err := formatFile(fullPath)
+	fmt.Println(ff)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -74,7 +98,7 @@ func (a Model) Handle(ctx *prowjob.Context) {
 
 func getModelFullPath(dbConf map[string]string, tableName, path string) (string, error) {
 	if dbConf == nil {
-		return "", errors.New(fmt.Sprintf(artisan.NO_DB_CONFIG, dbConf))
+		return "", errors.New(fmt.Sprintf(command.NO_DB_CONFIG, dbConf))
 	}
 	if path == "" {
 		path = DEFAULT_MODEL_DIR + dbConf["driver"] + "/" + dbConf["alias"] + "/"
@@ -82,11 +106,11 @@ func getModelFullPath(dbConf map[string]string, tableName, path string) (string,
 	f := path + tableName + ".go"
 	return f, nil
 }
-func getTableStruct(configName, tableName string) [][]string {
-	conn := db.GetConn(configName)
+func getTableStruct(configName string, config map[string]string, tableName string) [][]string {
+	conn := db.GetConn(configName, config)
 	if conn == nil {
 		conn.Name()
-		fmt.Printf(artisan.NO_DB_CONFIG, configName)
+		fmt.Printf(command.NO_DB_CONFIG, configName)
 		return nil
 	}
 	var desc [][]string
@@ -187,57 +211,64 @@ func createComment(comment string) string {
 	if comment == "" {
 		return ""
 	}
+	comment = strings.ReplaceAll(comment, "\n", "\t//")
 	return " // " + comment
 }
 
-func createModelFile(connConfig, tableName, modelPath string, desc [][]string) error {
-	conf := config.GetDb(connConfig)
-	if conf == nil {
-		return errors.New(fmt.Sprintf(artisan.NO_DB_CONFIG, connConfig))
-	}
+func createModelFile(conf map[string]string, modelPath string, desc [][]string) error {
 	if modelPath == "" {
 		return errors.New("model path cannot be empty")
 	}
-	pgName := conf["alias"]
-	tyName := strings2.ToUpFirst(strings2.SnakeToBigCamel(tableName))
+	packageName := conf["alias"]
+	dbName := conf["db"]
+	typeName := strings2.ToUpFirst(strings2.SnakeToBigCamel(packageName))
+	receiver := strings2.ToLowFirst(typeName[0:1])
+	receiverType := "*" + typeName
 	importStat := make(map[string]bool)
-	var importList []string
+	var importList []command.ImportTemplate
 	var content []string
 	for _, v := range desc {
 		if v[1] == "time.Time" && !importStat["time"] {
-			importList = append(importList, "\"time\"")
+			importList = append(importList, command.ImportTemplate{ImportName: "time"})
 			importStat["time"] = true
 		}
 		if v[1] == "datatypes.JSON" && !importStat["datatypes.JSON"] {
-			importList = append(importList, "\"gorm.io/datatypes\"")
+			importList = append(importList, command.ImportTemplate{ImportName: "gorm.io/datatypes"})
 			importStat["datatypes.JSON"] = true
 		}
 		row := strings.Join(v, "\t")
 		content = append(content, "\t"+row)
 	}
-	importStr := ""
-	if len(importList) > 0 {
-		importStr = `
-import (
-` + strings.Join(importList, "\n") + `
-)
-`
-	}
-	contentStr := strings.Join(content, "\n")
-	src := `package ` + pgName + `
-` + importStr + `
-type ` + tyName + ` struct {
-` + contentStr + `
+	return creatFile(packageName, typeName, receiver, receiverType, dbName, modelPath, content, importList)
 }
-func (t *` + tyName + `) TableName() string {
-	return "` + tableName + `"
+
+func creatFile(packageName, typeName, receiver, receiverType, dbName, modelPath string, content []string, importList []command.ImportTemplate) error {
+	var funcs []command.FuncTemplate
+	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "New" + typeName, Params: "", Results: receiverType, FuncBody: "return &" + typeName + "{}"})
+	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "TableName", Params: "", Results: "string", FuncBody: "return \"" + dbName + "\""})
+
+	data := command.TemplateData{
+		PackageName: packageName,
+		Imports:     importList,
+		Consts:      nil,
+		Vars:        nil,
+		Types:       []command.TypeTemplate{{TypeName: typeName, Fields: content}},
+		Funcs:       funcs,
+	}
+	return command.CreateTemplateFile(modelPath, command.CommonTemplate, data)
 }
-`
-	if err := file2.MakeDirByFile(modelPath); err != nil {
-		return err
+
+func formatFile(path string) (string, error) {
+	rs := ""
+	goFmt, err := codefmt.GoFmt()
+	if err != nil {
+		return rs, err
 	}
-	if err := os.WriteFile(modelPath, []byte(src), 0666); err != nil {
-		return err
+	rs += "\n" + goFmt
+	imports, err := codefmt.GoImports(path)
+	if err != nil {
+		return rs, err
 	}
-	return nil
+	rs += "\n" + imports
+	return rs, nil
 }
