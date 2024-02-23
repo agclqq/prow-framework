@@ -52,6 +52,9 @@ func (e *DotEnv) GetAll() map[string]string {
 	return e.envs
 }
 func (e *DotEnv) Get(key string) string {
+	if e.envs == nil {
+		return ""
+	}
 	return e.envs[key]
 }
 
@@ -60,5 +63,8 @@ func (e *DotEnv) SetAll(m map[string]string) bool {
 	return true
 }
 func (e *DotEnv) Set(key, val string) bool {
+	if e.envs == nil {
+		return false
+	}
 	return e.envs[key] == val
 }
