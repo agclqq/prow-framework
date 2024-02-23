@@ -27,7 +27,7 @@ func (a Controller) GetCommand() string {
 func (a Controller) Usage() string {
 	return `Usage of make:controller:
   make:controller controllerName [path[ pathPrefix]] [-r y/n]
-    path is the path in the specified directory
+    the path refers to the part after the prefix
     if the 'pathPrefix' is not given, the default is '` + defaultControllerDir + `'
     -r indicates whether it is restful api, the default is y
 `
