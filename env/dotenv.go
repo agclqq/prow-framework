@@ -29,8 +29,8 @@ func NewDotEnv(option ...Option) (*DotEnv, error) {
 	}
 	de := &DotEnv{envs: m}
 	if cf.MergeOs {
-		for k, v := range m {
-			if osV, ok := os.LookupEnv(v); ok {
+		for k, _ := range m {
+			if osV, ok := os.LookupEnv(k); ok {
 				de.envs[k] = osV
 			}
 		}
