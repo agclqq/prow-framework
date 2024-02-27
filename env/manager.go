@@ -18,14 +18,11 @@ var std, err = New(Dot, WithOsEnv())
 func WithOsEnv() Option {
 	return func(m *conf) {
 		m.MergeOs = true
-		//for key, val := range m.EnvMaps {
-		//	if env, ok := os.LookupEnv(val); ok {
-		//		m.EnvMaps[key] = env
-		//	}
-		//}
 	}
 }
 
+// WithEnvName specifies which environment variable is used to take the value of the current environment
+// default is GO_ENV
 func WithEnvName(name string) Option {
 	return func(m *conf) {
 		m.EnvName = name
@@ -40,7 +37,7 @@ func WithFile(file string) Option {
 	}
 }
 
-func New(envType Type, opts ...Option) (EnvManager, error) {
+func New(envType Type, opts ...Option) (Manager, error) {
 	switch envType {
 	case Dot:
 		return NewDotEnv(opts...)

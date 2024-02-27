@@ -9,7 +9,7 @@ type conf struct {
 	EnvMaps map[string]string
 }
 type Option func(em *conf)
-type EnvManager interface {
+type Manager interface {
 	GetAll() map[string]string
 	SetAll(map[string]string) bool
 	Get(key string) string
