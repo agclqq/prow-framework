@@ -11,6 +11,7 @@ import (
 
 	"github.com/SkyAPM/go2sky"
 
+	"github.com/agclqq/prow-framework/module"
 	"github.com/agclqq/prow-framework/skywalking"
 	"github.com/agclqq/prow-framework/times"
 
@@ -43,7 +44,7 @@ const maximumCallerDepth = 26
 const knownLogrusFrames int = 4
 
 var minimumCallerDepth = 1
-var currentPackage = "github.com/agclqq/prow-framework/logger"
+var currentPackage = module.GetNameWithoutErr() + "/logger"
 var binOfDir = getDirOfBin()
 var businessOnce sync.Once
 

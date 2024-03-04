@@ -15,8 +15,14 @@ func GetName() (string, error) {
 	cmd := exec.Command("go", "list", "-m")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	moduleName = strings.TrimSpace(string(output))
 	return moduleName, nil
+}
+
+// GetNameWithoutErr get module name
+func GetNameWithoutErr() string {
+	name, _ := GetName()
+	return name
 }

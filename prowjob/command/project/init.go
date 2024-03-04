@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	frameworkModuleName = "github.com/agclqq/prow-framework"
+	frameworkModuleName = module.GetNameWithoutErr()
 	moduleName          string
 )
 
