@@ -55,7 +55,7 @@ type Option func(trans *Trans) error
 func newStd() *Trans {
 	v, ok := binding.Validator.Engine().(*validator.Validate)
 	if !ok {
-		fmt.Errorf("failed to init validator")
+		fmt.Println("failed to init validator")
 		return nil
 	}
 	t, err := New(v, WithLocal("zh"), WithAliasTag())

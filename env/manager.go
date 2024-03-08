@@ -2,6 +2,7 @@ package env
 
 import (
 	"errors"
+	"reflect"
 )
 
 type Type int
@@ -46,7 +47,7 @@ func New(envType Type, opts ...Option) (Manager, error) {
 }
 
 func Get(key string, defaultVal ...string) string {
-	if std == nil {
+	if IsNilOrInvalidValue(std) {
 		return ""
 	}
 	if v := std.Get(key); v != "" {
@@ -62,4 +63,9 @@ func GetAll() map[string]string {
 		return nil
 	}
 	return std.GetAll()
+}
+
+func IsNilOrInvalidValue(i interface{}) bool {
+	v := reflect.ValueOf(i)
+	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil())
 }

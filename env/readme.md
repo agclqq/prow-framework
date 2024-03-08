@@ -11,7 +11,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/agclqq/prow/env"
+	"github.com/agclqq/prow-framework/env"
 )
 
 func main() {
@@ -21,7 +21,8 @@ func main() {
 	// or
 	em, err := env.New(env.Dot)
 	if err != nil {
-		return err
+		fmt.Println(err)
+		return
 	}
 	fmt.Println(em.Get("TEST_KEY"))
 }
