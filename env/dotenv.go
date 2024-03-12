@@ -11,7 +11,7 @@ type DotEnv struct {
 	envs map[string]string
 }
 
-func NewDotEnv(option ...Option) (*DotEnv, error) {
+func NewDotEnv(option ...Option) (Manager, error) {
 	cf := &conf{}
 	for _, opt := range option {
 		opt(cf)
@@ -66,5 +66,6 @@ func (e *DotEnv) Set(key, val string) bool {
 	if e.envs == nil {
 		return false
 	}
-	return e.envs[key] == val
+	e.envs[key] = val
+	return true
 }
