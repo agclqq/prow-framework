@@ -16,10 +16,12 @@ import (
 	"github.com/go-playground/locales/lv"
 	"github.com/go-playground/locales/nl"
 	"github.com/go-playground/locales/pt"
+	"github.com/go-playground/locales/pt_BR"
 	"github.com/go-playground/locales/ru"
 	"github.com/go-playground/locales/tr"
 	"github.com/go-playground/locales/vi"
 	"github.com/go-playground/locales/zh"
+	"github.com/go-playground/locales/zh_Hant_TW"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	arTranslations "github.com/go-playground/validator/v10/translations/ar"
@@ -67,7 +69,7 @@ func newStd() *Trans {
 }
 
 func New(vld *validator.Validate, opts ...Option) (*Trans, error) {
-	uni := ut.New(ar.New(), en.New(), es.New(), fa.New(), fr.New(), id.New(), it.New(), ja.New(), lv.New(), nl.New(), pt.New(), ru.New(), tr.New(), vi.New(), zh.New())
+	uni := ut.New(en.New(), ar.New(), en.New(), es.New(), fa.New(), fr.New(), id.New(), it.New(), ja.New(), lv.New(), nl.New(), pt.New(), pt_BR.New(), ru.New(), tr.New(), vi.New(), zh.New(), zh_Hant_TW.New())
 	tran := &Trans{vld: vld, uniTran: uni}
 	for _, opt := range opts {
 		err := opt(tran)
@@ -92,39 +94,39 @@ func WithLocal(local string) Option {
 		trans.tran = tran
 		var err error
 		switch local {
-		case "ar":
+		case "ar": //阿拉伯语
 			err = arTranslations.RegisterDefaultTranslations(trans.vld, tran)
 		case "en":
 			err = enTranslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "es":
+		case "es": //西班牙语
 			err = esTranslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "fa":
+		case "fa": //波斯语
 			err = faTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "fr":
+		case "fr": //法语
 			err = frTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "id":
+		case "id": //印尼语
 			err = idTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "it":
+		case "it": //意大利语
 			err = itTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "ja":
+		case "ja": //日语
 			err = jaTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "lv":
+		case "lv": //拉脱维亚语
 			err = lvTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "nl":
+		case "nl": //荷兰语
 			err = nlTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "pt":
+		case "pt": //葡萄牙语
 			err = ptTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "pt_BR":
+		case "pt_BR": //巴西葡萄牙语
 			err = ptbrTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "ru":
+		case "ru": //俄语
 			err = ruTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "tr":
+		case "tr": //土耳其语
 			err = trTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "vi":
+		case "vi": //越南语
 			err = viTandslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "zh":
+		case "zh": //中文
 			err = zhTranslations.RegisterDefaultTranslations(trans.vld, tran)
-		case "zh_tw":
+		case "zh_hant_tw": //繁体中文台湾
 			err = zhtwTranslations.RegisterDefaultTranslations(trans.vld, tran)
 		default:
 			err = enTranslations.RegisterDefaultTranslations(trans.vld, tran)
@@ -149,7 +151,7 @@ func (t *Trans) GetErrors(err error) []error {
 	ok := errors.As(err, &errs)
 	if ok {
 		TransErrs := errs.Translate(trans)
-		resErrs := make([]error, 0)
+		resErrs := make([]error, 0, len(TransErrs))
 		for _, v := range TransErrs {
 			resErrs = append(resErrs, errors.New(v))
 		}
@@ -165,81 +167,3 @@ func GetError(err error) error {
 func GetErrors(err error) []error {
 	return std.GetErrors(err)
 }
-
-//func TransInit(v *validator.Validate, local string) (err error) {
-//	//if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-//	zhT := zh.New()
-//	enT := en.New()
-//	uni := ut.New(enT, zhT)
-//	tran, ok := uni.GetTranslator(local)
-//	trans = tran
-//	if !ok {
-//		return fmt.Errorf("uni.GetTranslator(%s) failed", local)
-//	}
-//	switch local {
-//	case "en":
-//		err = enTranslations.RegisterDefaultTranslations(v, trans)
-//	case "zh":
-//		err = zhTranslations.RegisterDefaultTranslations(v, trans)
-//	default:
-//		err = enTranslations.RegisterDefaultTranslations(v, trans)
-//	}
-//	return
-//}
-//
-//func extendZhTrans(v *validator.Validate, trans ut.Translator) (err error) {
-//	translations := []struct {
-//		tag             string
-//		translation     string
-//		override        bool
-//		customRegisFunc validator.RegisterTranslationsFunc
-//		customTransFunc validator.TranslationFunc
-//	}{
-//		{
-//			tag:         "required_if",
-//			translation: "{0}为必填字段",
-//			override:    false,
-//			//customRegisFunc: func(ut ut.Translator) error {
-//			//	return ut.Add("required_if", "{0}为必填字段", false)
-//			//},
-//			//customTransFunc: func(ut ut.Translator, fe validator.FieldError) string {
-//			//	t, _ := ut.T("required_if", fe.Field())
-//			//	return t
-//			//},
-//		},
-//	}
-//
-//	for _, t := range translations {
-//		if t.customTransFunc != nil && t.customRegisFunc != nil {
-//			err = v.RegisterTranslation(t.tag, trans, t.customRegisFunc, t.customTransFunc)
-//		} else if t.customTransFunc != nil && t.customRegisFunc == nil {
-//			err = v.RegisterTranslation(t.tag, trans, registrationFunc(t.tag, t.translation, t.override), t.customTransFunc)
-//		} else if t.customTransFunc == nil && t.customRegisFunc != nil {
-//			err = v.RegisterTranslation(t.tag, trans, t.customRegisFunc, translateFunc)
-//		} else {
-//			err = v.RegisterTranslation(t.tag, trans, registrationFunc(t.tag, t.translation, t.override), translateFunc)
-//		}
-//		if err != nil {
-//			return
-//		}
-//	}
-//	return
-//}
-//
-//func registrationFunc(tag string, translation string, override bool) validator.RegisterTranslationsFunc {
-//	return func(ut ut.Translator) (err error) {
-//		if err = ut.Add(tag, translation, override); err != nil {
-//			return
-//		}
-//		return
-//	}
-//}
-//
-//func translateFunc(ut ut.Translator, fe validator.FieldError) string {
-//	t, err := ut.T(fe.Tag(), fe.Field())
-//	if err != nil {
-//		log.Printf("警告: 翻译字段错误: %#v", fe)
-//		return fe.(error).Error()
-//	}
-//	return t
-//}
