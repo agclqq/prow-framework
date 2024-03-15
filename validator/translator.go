@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/locales"
 	"github.com/go-playground/locales/ar"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/es"
@@ -54,6 +55,65 @@ var (
 	ErrValidatorFailedInit = errors.New("failed to init validator")
 )
 
+type Lang string //要翻译为的语言
+const (
+	Ar         Lang = "ar"
+	En         Lang = "en"
+	Es         Lang = "es"
+	Fa         Lang = "fa"
+	Fr         Lang = "fr"
+	Id         Lang = "id"
+	It         Lang = "it"
+	Ja         Lang = "ja"
+	Lv         Lang = "lv"
+	Nl         Lang = "nl"
+	Pt         Lang = "pt"
+	Pt_BR      Lang = "pt_BR"
+	Ru         Lang = "ru"
+	Tr         Lang = "tr"
+	Vi         Lang = "vi"
+	Zh         Lang = "zh"
+	Zh_Hant_TW Lang = "zh_hant_tw"
+)
+
+var sourceLang = map[Lang]locales.Translator{
+	Ar:         ar.New(),
+	En:         en.New(),
+	Es:         es.New(),
+	Fa:         fa.New(),
+	Fr:         fr.New(),
+	Id:         id.New(),
+	It:         it.New(),
+	Ja:         ja.New(),
+	Lv:         lv.New(),
+	Nl:         nl.New(),
+	Pt:         pt.New(),
+	Pt_BR:      pt_BR.New(),
+	Ru:         ru.New(),
+	Tr:         tr.New(),
+	Vi:         vi.New(),
+	Zh:         zh.New(),
+	Zh_Hant_TW: zh_Hant_TW.New(),
+}
+var targetTrans = map[Lang]func(*validator.Validate, ut.Translator) error{
+	Ar:         arTranslations.RegisterDefaultTranslations,
+	En:         enTranslations.RegisterDefaultTranslations,
+	Es:         esTranslations.RegisterDefaultTranslations,
+	Fa:         faTandslations.RegisterDefaultTranslations,
+	Fr:         frTandslations.RegisterDefaultTranslations,
+	Id:         idTandslations.RegisterDefaultTranslations,
+	It:         itTandslations.RegisterDefaultTranslations,
+	Ja:         jaTandslations.RegisterDefaultTranslations,
+	Lv:         lvTandslations.RegisterDefaultTranslations,
+	Nl:         nlTandslations.RegisterDefaultTranslations,
+	Pt:         ptTandslations.RegisterDefaultTranslations,
+	Pt_BR:      ptbrTandslations.RegisterDefaultTranslations,
+	Ru:         ruTandslations.RegisterDefaultTranslations,
+	Tr:         trTandslations.RegisterDefaultTranslations,
+	Vi:         viTandslations.RegisterDefaultTranslations,
+	Zh:         zhTranslations.RegisterDefaultTranslations,
+	Zh_Hant_TW: zhtwTranslations.RegisterDefaultTranslations,
+}
 var trans ut.Translator
 var std = newGinZh()
 
@@ -64,12 +124,12 @@ func newGinZh() *Trans {
 	return t
 }
 
-func SwitchGinVldLang(local string) {
+func SwitchGinVldLang(local Lang) {
 	t, _ := newGinVld(local)
 	std = t
 }
 
-func newGinVld(local string) (*Trans, error) {
+func newGinVld(local Lang) (*Trans, error) {
 	v, ok := binding.Validator.Engine().(*validator.Validate)
 	if !ok {
 		return nil, ErrValidatorFailedInit
@@ -83,7 +143,13 @@ func newGinVld(local string) (*Trans, error) {
 }
 
 func New(vld *validator.Validate, opts ...Option) (*Trans, error) {
-	uni := ut.New(en.New(), ar.New(), en.New(), es.New(), fa.New(), fr.New(), id.New(), it.New(), ja.New(), lv.New(), nl.New(), pt.New(), pt_BR.New(), ru.New(), tr.New(), vi.New(), zh.New(), zh_Hant_TW.New())
+	uni := ut.New(en.New())
+	for _, v := range sourceLang {
+		err := uni.AddTranslator(v, true)
+		if err != nil {
+			return nil, err
+		}
+	}
 	tran := &Trans{Vld: vld, uniTran: uni}
 	for _, opt := range opts {
 		err := opt(tran)
@@ -101,53 +167,17 @@ func WithAliasTag() Option {
 	}
 }
 
-func WithLocal(local string) Option {
+func WithLocal(local Lang) Option {
 	return func(trans *Trans) error {
-		tran, ok := trans.uniTran.GetTranslator(local)
+		tran, ok := trans.uniTran.GetTranslator(string(local))
 		if !ok {
 			return errors.New(fmt.Sprintf("cannot be translated as %s", local))
 		}
 		trans.tran = tran
-		var err error
-		switch local {
-		case "ar": //阿拉伯语
-			err = arTranslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "en":
-			err = enTranslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "es": //西班牙语
-			err = esTranslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "fa": //波斯语
-			err = faTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "fr": //法语
-			err = frTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "id": //印尼语
-			err = idTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "it": //意大利语
-			err = itTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "ja": //日语
-			err = jaTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "lv": //拉脱维亚语
-			err = lvTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "nl": //荷兰语
-			err = nlTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "pt": //葡萄牙语
-			err = ptTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "pt_BR": //巴西葡萄牙语
-			err = ptbrTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "ru": //俄语
-			err = ruTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "tr": //土耳其语
-			err = trTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "vi": //越南语
-			err = viTandslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "zh": //中文
-			err = zhTranslations.RegisterDefaultTranslations(trans.Vld, tran)
-		case "zh_hant_tw": //繁体中文台湾
-			err = zhtwTranslations.RegisterDefaultTranslations(trans.Vld, tran)
-		default:
-			err = enTranslations.RegisterDefaultTranslations(trans.Vld, tran)
+		if f, ok := targetTrans[local]; ok {
+			return f(trans.Vld, tran)
 		}
-		return err
+		return enTranslations.RegisterDefaultTranslations(trans.Vld, tran)
 	}
 }
 
