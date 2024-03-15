@@ -4,7 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	arTranslations "github.com/go-playground/validator/v10/translations/ar"
 	"golang.org/x/exp/slices"
 )
 
@@ -125,8 +127,23 @@ func Test_Alias(t *testing.T) {
 	if getErr.Error() != "姓为必填字段" {
 		t.Errorf("want 姓为必填字段, got %s", getErr.Error())
 	}
-
 }
+
+func Test_UnsupportedLocal(t *testing.T) {
+	//force fewer translation language packs to test unsupported languages
+	oldTt := targetTrans
+	targetTrans = map[Lang]func(*validator.Validate, ut.Translator) error{
+		Ar: arTranslations.RegisterDefaultTranslations,
+	}
+	defer func() {
+		targetTrans = oldTt
+	}()
+	_, err := New(validator.New(), WithLocal("zh"))
+	if err == nil {
+		t.Error("want error, got nil")
+	}
+}
+
 func TestMultilingual(t *testing.T) {
 	type args struct {
 		vld  *validator.Validate
