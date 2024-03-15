@@ -55,7 +55,7 @@ var (
 	ErrValidatorFailedInit = errors.New("failed to init validator")
 )
 
-type Lang string //要翻译为的语言
+type Lang string // support language
 const (
 	Ar         Lang = "ar"
 	En         Lang = "en"
