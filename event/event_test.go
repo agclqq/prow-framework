@@ -8,16 +8,82 @@ import (
 	"time"
 )
 
+func tearDown() {
+	std = &Event{
+		eventMap:    make(map[string]*eventChan, 8),
+		receiverMap: make(map[string][]*receiver, 8),
+	}
+}
+func Test_InitEnvName(t *testing.T) {
+	defer tearDown()
+	err := InitEvent("", 100)
+	if err == nil {
+		t.Errorf("want error, got nil")
+	}
+
+	err = InitEvent("test", 100)
+	if err != nil {
+		t.Errorf("want nil, got %s", err.Error())
+	}
+	err = InitEvent("test", 100)
+	if err == nil {
+		t.Errorf("want error, got nil")
+	}
+}
+
+func Test_longRunning(t *testing.T) {
+	defer tearDown()
+	err := InitEvent("test", 1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	Register(&longRunning{})
+	Run()
+	for i := 0; i < 5; i++ {
+		err := Fire("test", []byte(strconv.Itoa(i)))
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	time.Sleep(2 * time.Second)
+}
+func Test_NotExistChannel(t *testing.T) {
+	defer tearDown()
+	err := Fire("notExist", []byte("test"))
+	if err == nil {
+		t.Errorf("want error, got nil")
+	}
+	if err != ErrNotExistChannel {
+		t.Errorf("want %s, got %s", ErrNotExistChannel.Error(), err.Error())
+	}
+}
+
+type longRunning struct{}
+
+func (l *longRunning) ListenName() string {
+	return "test"
+}
+
+func (l *longRunning) Concurrence() int64 {
+	return 1
+}
+
+func (l *longRunning) Handle(ctx context.Context, data []byte) {
+	fmt.Println("longRunning", string(data))
+	time.Sleep(1 * time.Second)
+}
+
 func TestRun(t *testing.T) {
 	chanName := make(map[string]int)
-	chanName["c1"] = 1000
-	chanName["c2"] = 1000
+	chanName["c1"] = 0
+	chanName["c2"] = 100
 	chanName["c3"] = 1000
-	chanName["c4"] = 1000
-	chanName["c5"] = 1000
+	chanName["c4"] = 5000
+	chanName["c5"] = 10000
 
 	for k, v := range chanName {
-		err := InitEnvName(k, v)
+		err := InitEvent(k, v)
 		if err != nil {
 			t.Error(err)
 			return

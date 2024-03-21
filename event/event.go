@@ -36,12 +36,12 @@ var std = &Event{
 	receiverMap: make(map[string][]*receiver, 8),
 }
 
-// InitEnvName 初始化事件名称
-func InitEnvName(name string, capacity int) error {
+// InitEvent 初始化事件名称
+func InitEvent(name string, capacity int) error {
 	std.mu.Lock()
 	defer std.mu.Unlock()
 	if name == "" {
-		return errors.New("name is empty")
+		return errors.New("the event name cannot be empty")
 	}
 	if capacity <= 0 {
 		capacity = 1000
