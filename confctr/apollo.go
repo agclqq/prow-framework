@@ -1,0 +1,5 @@
+package confctr
+
+func NewApollo() {
+
+}
