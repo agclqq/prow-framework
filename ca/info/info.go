@@ -1,112 +1,55 @@
 package info
 
 import (
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
 	"errors"
-	"os"
-	"strings"
-
-	"github.com/agclqq/prow-framework/execcmd"
-	"github.com/agclqq/prow-framework/file"
 )
 
 type Cert struct {
-	CertPath    string
-	CertContent string
-	tmpDir      string
+	cert []byte
+}
+type CertInfos struct {
+	*x509.Certificate //继承x509.Certificate
+	Sha256            string
 }
 
-type CertOption func(*Cert)
-
-func NewCert(opts ...CertOption) *Cert {
-	c := &Cert{}
-	for _, opt := range opts {
-		opt(c)
-	}
-
-	return c
+func NewCert(cert []byte) *Cert {
+	return &Cert{cert: cert}
 }
 
-func WithCertPath(certPath string) CertOption {
-	return func(c *Cert) {
-		c.CertPath = certPath
+func (i *Cert) Get() (*CertInfos, error) {
+	block, _ := pem.Decode(i.cert)
+	if block == nil || block.Type != "CERTIFICATE" {
+		return nil, errors.New("failed to decode PEM block containing certificate")
 	}
-}
-func WithCertContent(certContent string) CertOption {
-	return func(c *Cert) {
-		c.CertContent = certContent
-	}
-}
-
-func (c *Cert) verify() error {
-	if c.CertPath == "" && c.CertContent == "" {
-		return errors.New("证书路径和证书内容不能同时为空")
-	}
-	if c.CertPath == "" {
-		temp, err := os.MkdirTemp("", "cert-*")
-		if err != nil {
-			return err
-		}
-		c.tmpDir = temp
-		err = os.WriteFile(temp+"/cert.pem", []byte(c.CertContent), 0644)
-		if err != nil {
-			return err
-		}
-		c.CertPath = temp + "/cert.pem"
-	} else {
-		if !file.Exist(c.CertPath) {
-			return errors.New("证书路径不存在")
-		}
-	}
-	return nil
-}
-
-func (c *Cert) GetSerial() (string, error) {
-	if err := c.verify(); err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(c.tmpDir)
-
-	log, err := execcmd.Command("openssl", "x509", "-in", c.CertPath, "-noout", "-serial")
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	rs := strings.Split(string(log), "=")
-	if len(rs) != 2 {
-		return "", errors.New("获取序列号失败")
-	}
-	return strings.TrimSpace(rs[1]), nil
+	digest := sha256.Sum256(cert.Raw)
+	return &CertInfos{Certificate: cert, Sha256: hex.EncodeToString(digest[:])}, nil
 }
 
-func (c *Cert) GetStartTime() (string, error) {
-	if err := c.verify(); err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(c.tmpDir)
-
-	log, err := execcmd.Command("openssl", "x509", "-in", c.CertPath, "-noout", "-startdate")
-	if err != nil {
-		return "", err
-	}
-	rs := strings.Split(string(log), "=")
-	if len(rs) != 2 {
-		return "", errors.New("获取证书开始时间失败")
-	}
-	return strings.TrimSpace(rs[1]), nil
+type Crl struct {
+	crl []byte
 }
 
-func (c *Cert) GetEndTime() (string, error) {
-	if err := c.verify(); err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(c.tmpDir)
+func NewCrl(crl []byte) *Crl {
+	return &Crl{crl: crl}
+}
 
-	log, err := execcmd.Command("openssl", "x509", "-in", c.CertPath, "-noout", "-enddate")
+func (i *Crl) Get() (*x509.RevocationList, error) {
+	block, _ := pem.Decode(i.crl)
+	if block == nil || block.Type != "X509 CRL" {
+		return nil, errors.New("failed to decode PEM block containing CRL")
+	}
+	crl, err := x509.ParseRevocationList(block.Bytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	rs := strings.Split(string(log), "=")
-	if len(rs) != 2 {
-		return "", errors.New("获取证书结束时间失败")
-	}
-	return strings.TrimSpace(rs[1]), nil
+
+	return crl, nil
 }

@@ -1,30 +1,28 @@
 package selfsign
 
 import (
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/agclqq/prow-framework/execcmd"
-	"github.com/agclqq/prow-framework/file"
-
-	"rms/infra/ca"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
+	"time"
 )
 
 type Ca struct {
-	dir    string
-	SubjC  string
-	SubjST string
-	SubjL  string
-	SubjO  string
-	SubjOU string
-	SubjCN string
+	SubjC  []string //country
+	SubjST []string //province
+	SubjL  []string //locality
+	SubjO  []string //organization
+	SubjOU []string //organizational unit
+	SubjCN string   //common name
 	Days   int
+	keyBit int
 }
 type CaOption func(*Ca)
 
-func NewCa(c, st, l, o, ou, cn string, opts ...CaOption) *Ca {
+func NewCa(c, st, l, o, ou []string, cn string, opts ...CaOption) *Ca {
 	ca := &Ca{
 		SubjC:  c,
 		SubjST: st,
@@ -33,6 +31,7 @@ func NewCa(c, st, l, o, ou, cn string, opts ...CaOption) *Ca {
 		SubjOU: ou,
 		SubjCN: cn,
 		Days:   365,
+		keyBit: 2048,
 	}
 
 	for _, opt := range opts {
@@ -45,66 +44,68 @@ func WithDays(days int) CaOption {
 		c.Days = days
 	}
 }
-func WithDir(dir string) CaOption {
+
+func WithBit(bit int) CaOption {
 	return func(c *Ca) {
-		c.dir = dir
+		c.keyBit = bit
 	}
 }
-func (c *Ca) createConf() error {
-	if !ca.SslVerify() {
-		return errors.New("openssl is not installed")
-	}
-	if c.dir == "" {
-		baseDir := filepath.Join(os.TempDir(), "ca")
-		err := os.MkdirAll(baseDir, 0755)
-		if err != nil {
-			return err
-		}
-		dir, err := os.MkdirTemp(baseDir, "ca-")
-		if err != nil {
-			return err
-		}
-		c.dir = dir
-	}
-	if !file.Exist(c.dir) {
-		err := os.MkdirAll(c.dir, 0755)
-		if err != nil {
-			return err
-		}
-	}
-
-	confFilePath := filepath.Join(c.dir, "ca.conf")
-	fileContent := fmt.Sprintf(ca.SelfSignCaConf(), c.dir, c.SubjC, c.SubjST, c.SubjL, c.SubjO, c.SubjOU, c.SubjCN)
-	err := os.WriteFile(confFilePath, []byte(fileContent), 0644)
-	return err
-}
-
-// Sign signs the certificate
-// return keyPath, pemPath, error
-func (c *Ca) Sign() (string, string, error) {
-	err := c.createConf()
+func (c *Ca) Sign() ([]byte, []byte, error) {
+	//创建私钥
+	prvKey, err := rsa.GenerateKey(rand.Reader, c.keyBit)
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
-	keyPath := filepath.Join(c.dir, "ca.key")
-	csrPath := filepath.Join(c.dir, "ca.csr")
-	confPath := filepath.Join(c.dir, "ca.conf")
-	pemPath := filepath.Join(c.dir, "ca.pem")
+	prvKeyPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(prvKey)})
+	subj := pkix.Name{
+		Country:            c.SubjC,
+		Organization:       c.SubjO,
+		OrganizationalUnit: c.SubjOU,
+		Locality:           c.SubjL,
+		Province:           c.SubjST,
+		StreetAddress:      nil,
+		PostalCode:         nil,
+		SerialNumber:       "",
+		CommonName:         c.SubjCN,
+		Names:              nil,
+		ExtraNames:         nil,
+	}
 
-	// openssl genrsa -out server.key 2048
-	if log, err := execcmd.Command("openssl", "genrsa", "-out", keyPath, "2048"); err != nil {
-		fmt.Printf("Failed to generate RSA key:%v,%s \n", err, log)
-		return "", "", err
+	//创建CSR
+	csrTpl := x509.CertificateRequest{
+		SignatureAlgorithm: x509.SHA256WithRSA,
+		Subject:            subj,
 	}
-	// openssl req -new -sha256 -out ca.csr -key ca.key -config ca.conf
-	if log, err := execcmd.Command("openssl", "req", "-new", "-sha256", "-out", csrPath, "-key", keyPath, "-config", confPath); err != nil {
-		fmt.Printf("Failed to generate CSR:%v,log:%s \n", err, log)
-		return "", "", err
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &csrTpl, prvKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	//csrPem:=pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+	//创建证书
+
+	csr, err := x509.ParseCertificateRequest(csrBytes)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	if log, err := execcmd.Command("openssl", "x509", "-req", "-days", fmt.Sprintf("%d", c.Days), "-in", csrPath, "-signkey", keyPath, "-out", pemPath); err != nil {
-		fmt.Printf("Failed to generate PEM:%v,log:%s", err, log)
-		return "", "", err
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, nil, err
 	}
-	return keyPath, pemPath, nil
+	certTpl := x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               csr.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(0, 0, c.Days),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	cert, err := x509.CreateCertificate(rand.Reader, &certTpl, &certTpl, prvKey.Public(), prvKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	certPem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})
+	return certPem, prvKeyPem, nil
 }

@@ -1,75 +1,97 @@
 package revoke
 
 import (
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
-	"fmt"
-	"strings"
-
-	"github.com/agclqq/prow-framework/execcmd"
-
-	"rms/infra/ca"
+	"math/big"
+	"time"
 )
 
 type Revoke struct {
-	caKeyPath  string
-	caPemPath  string
-	caConfPath string
-	certPath   string
-	crlPath    string
+	caCert []byte
+	caKey  []byte
+	cert   []byte
+	crl    []byte
 }
 
-type Option func(*Revoke)
+type RevokeOption func(*Revoke)
 
-func NewRevoke(caKeyPath, caPemPath, caConfPath, certPath, crlPath string, opts ...Option) *Revoke {
+func NewRevoke(caCert, caKey, cert []byte, opts ...RevokeOption) *Revoke {
 	r := &Revoke{
-		caKeyPath:  caKeyPath,
-		caPemPath:  caPemPath,
-		caConfPath: caConfPath,
-		certPath:   certPath,
-		crlPath:    crlPath,
+		caCert: caCert,
+		caKey:  caKey,
+		cert:   cert,
 	}
 	for _, opt := range opts {
 		opt(r)
 	}
-
 	return r
 }
-func (r *Revoke) verify() error {
-	if !ca.SslVerify() {
-		return errors.New("openssl is not installed")
-	}
-	if r.caConfPath == "" {
-		return errors.New("ca conf path is empty")
-	}
-	if r.caKeyPath == "" {
-		return errors.New("ca key path is empty")
 
+func WithCrl(crl []byte) RevokeOption {
+	return func(r *Revoke) {
+		r.crl = crl
 	}
-	if r.caPemPath == "" {
-		return errors.New("ca pem path is empty")
-	}
-	if r.certPath == "" {
-		return errors.New("the path of the certificate to be revoked cannot be empty")
-	}
-	return nil
 }
-func (r *Revoke) Revoke() error {
-	err := r.verify()
-	if err != nil {
-		return err
+
+func (r *Revoke) Revoke() ([]byte, error) {
+	//解析ca证书
+	block, _ := pem.Decode(r.caCert)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block containing certificate")
 	}
-	// openssl ca -revoke certs/client.pem -keyfile ca.key -cert ca.pem -config ca.conf
-	if log, err := execcmd.Command("openssl", "ca", "-revoke", r.certPath, "-keyfile", r.caKeyPath, "-cert", r.caPemPath, "-config", r.caConfPath); err != nil {
-		fmt.Printf("Revoke error: %s\n", log)
-		if strings.Contains(string(log), "ERROR:Already revoked") {
-			return errors.New("the certificate has been revoked")
-		}
-		return err
+	caCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	//解析ca私钥
+	block, _ = pem.Decode(r.caKey)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block containing private key")
+	}
+	caKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	//解析待吊销证书
+	block, _ = pem.Decode(r.cert)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block containing certificate")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
 	}
 
-	if log, err := execcmd.Command("openssl", "ca", "-gencrl", "-keyfile", r.caKeyPath, "-cert", r.caPemPath, "-config", r.caConfPath); err != nil {
-		fmt.Printf("Revoke error: %s\n", log)
-		return err
+	rl := &x509.RevocationList{}
+	if r.crl != nil {
+		block, _ = pem.Decode(r.crl)
+		if block == nil {
+			return nil, errors.New("failed to decode PEM block containing CRL")
+		}
+		rl, err = x509.ParseRevocationList(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
 	}
-	return nil
+	rl.RevokedCertificateEntries = append(rl.RevokedCertificateEntries, x509.RevocationListEntry{
+		SerialNumber:   cert.SerialNumber,
+		RevocationTime: time.Now(),
+	})
+	if rl.Number == nil {
+		rl.Number = big.NewInt(1)
+	} else {
+		rl.Number = big.NewInt(0).Add(rl.Number, big.NewInt(1))
+	}
+
+	rl.ThisUpdate = time.Now()
+	rl.NextUpdate = time.Now().AddDate(0, 0, 7)
+	crlBytes, err := x509.CreateRevocationList(rand.Reader, rl, caCert, caKey)
+	if err != nil {
+		return nil, err
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "X509 CRL", Bytes: crlBytes}), nil
 }
