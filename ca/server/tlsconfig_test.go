@@ -47,7 +47,7 @@ func createServerCert(caCert, caKey []byte, ocsp []string) ([]byte, []byte, erro
 	if err != nil {
 		return nil, nil, err
 	}
-	cert, err := issuance.NewCert(caKey, caCert, csrByte, issuance.WithIssueType(issuance.IssueTypeServer), issuance.WithOcspServer(ocsp)).Sign()
+	cert, err := issuance.NewCert(caCert, caKey, csrByte, issuance.WithIssueType(issuance.IssueTypeServer), issuance.WithOcspServer(ocsp)).Sign()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -64,7 +64,7 @@ func createClientCert(caCert, caKey []byte, ocsp []string) ([]byte, []byte, erro
 	if err != nil {
 		return nil, nil, err
 	}
-	cert, err := issuance.NewCert(caKey, caCert, csrByte, issuance.WithOcspServer(ocsp)).Sign()
+	cert, err := issuance.NewCert(caCert, caKey, csrByte, issuance.WithOcspServer(ocsp)).Sign()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,7 +81,7 @@ func createInterCert(caCert, caKey []byte, ocsp []string) ([]byte, []byte, error
 	if err != nil {
 		return nil, nil, err
 	}
-	cert, err := issuance.NewCert(caKey, caCert, csrByte, issuance.WithIssueType(issuance.IssueTypeIntermediate), issuance.WithOcspServer(ocsp)).Sign()
+	cert, err := issuance.NewCert(caCert, caKey, csrByte, issuance.WithIssueType(issuance.IssueTypeIntermediate), issuance.WithOcspServer(ocsp)).Sign()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +95,7 @@ func revokeCert(cert []byte) ([]byte, error) {
 
 func createKeyCert() error {
 	var err error
-	caKey, caCert, err = createCa()
+	caCert, caKey, err = createCa()
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func TestTLSConfig(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			infos, err := info.NewCert(tmpCert).Get()
+			infos, err := info.NewCert(tmpCert).GetInfo()
 			if err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ func TestTLSConfig(t *testing.T) {
 		}}, wantErr: false},
 		{name: "t2", fields: fields{func() error {
 			//把客户端的证书吊销
-			infos, err := info.NewCert(cliCert).Get()
+			infos, err := info.NewCert(cliCert).GetInfo()
 			if err != nil {
 				return err
 			}
@@ -163,7 +163,7 @@ func TestTLSConfig(t *testing.T) {
 				return err
 			}
 			//吊销无ocsp服务的服务端的证书，此时客户端无法验证，服务可正常访问
-			infos, err := info.NewCert(svrCert).Get()
+			infos, err := info.NewCert(svrCert).GetInfo()
 			if err != nil {
 				return err
 			}
@@ -185,7 +185,7 @@ func TestTLSConfig(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			infos, err := info.NewCert(svrCert).Get()
+			infos, err := info.NewCert(svrCert).GetInfo()
 			if err != nil {
 				return err
 			}
@@ -214,7 +214,7 @@ func TestTLSConfig(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			infos, err := info.NewCert(svrCert).Get()
+			infos, err := info.NewCert(svrCert).GetInfo()
 			if err != nil {
 				return err
 			}
@@ -240,7 +240,7 @@ func TestTLSConfig(t *testing.T) {
 				return err
 			}
 
-			infos, err := info.NewCert(cliCert).Get()
+			infos, err := info.NewCert(cliCert).GetInfo()
 			if err != nil {
 				return err
 			}
@@ -271,10 +271,7 @@ func TestTLSConfig(t *testing.T) {
 			go svr(t) //开启server
 
 			go ocspSvr(t) //开启ocsp server
-			if err != nil {
-				t.Error(err)
-				return
-			}
+
 			time.Sleep(1 * time.Second)
 
 			pair, err := tls.X509KeyPair(cliCert, cliPrvKey)
@@ -287,10 +284,13 @@ func TestTLSConfig(t *testing.T) {
 				t.Error("failed to parse ca certificate")
 				return
 			}
-			if ok := certPool.AppendCertsFromPEM(interCert); !ok {
-				t.Error("failed to parse inter certificate")
-				return
+			if len(interCert) > 0 {
+				if ok := certPool.AppendCertsFromPEM(interCert); !ok {
+					t.Error("failed to parse inter certificate")
+					return
+				}
 			}
+
 			cli := &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
@@ -303,7 +303,7 @@ func TestTLSConfig(t *testing.T) {
 			}
 			_, err = cli.Get("https://localhost:8080")
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetInfo() error = %v, wantErr %v", err, tt.wantErr)
 				time.Sleep(1 * time.Second)
 				shutdown <- struct{}{}
 				shutdownOcsp <- struct{}{}
@@ -322,10 +322,13 @@ func ocspSvr(t *testing.T) {
 		t.Error("failed to parse CA certificate")
 		return
 	}
-	if ok := caCertPool.AppendCertsFromPEM(interCert); !ok {
-		t.Error("failed to parse inter certificate")
-		return
+	if len(interCert) > 0 {
+		if ok := caCertPool.AppendCertsFromPEM(interCert); !ok {
+			t.Error("failed to parse inter certificate")
+			return
+		}
 	}
+
 	pair, err := tls.X509KeyPair(svrCert, svrPrvKey)
 	if err != nil {
 		t.Error(err)
@@ -373,10 +376,13 @@ func svr(t *testing.T) {
 		t.Error("failed to parse CA certificate")
 		return
 	}
-	if ok := caCertPool.AppendCertsFromPEM(interCert); !ok {
-		t.Error("failed to parse inter certificate")
-		return
+	if len(interCert) > 0 {
+		if ok := caCertPool.AppendCertsFromPEM(interCert); !ok {
+			t.Error("failed to parse inter certificate")
+			return
+		}
 	}
+
 	pair, err := tls.X509KeyPair(svrCert, svrPrvKey)
 	if err != nil {
 		t.Error(err)

@@ -17,11 +17,13 @@ func TestCert_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.fields.cert.Get()
+			got, err := tt.fields.cert.GetInfo()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			t.Logf("cert sha256: %v", got.Sha256)
+			t.Logf("cert signature: %v", got.Signature)
 			t.Logf("cert Issuer: %v", got.Issuer)
 			t.Logf("cert subject: %v", got.Subject)
 			t.Logf("cert SerialNumber: %v", got.SerialNumber)
@@ -57,13 +59,13 @@ func TestCrl_Get(t *testing.T) {
 			i := &Crl{
 				crl: tt.fields.crl,
 			}
-			got, err := i.Get()
+			got, err := i.GetInfo()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if len(got.RevokedCertificateEntries) != tt.wantRevokeNum {
-				t.Errorf("Get() got = %v, want %v", len(got.RevokedCertificateEntries), tt.wantRevokeNum)
+				t.Errorf("GetInfo() got = %v, want %v", len(got.RevokedCertificateEntries), tt.wantRevokeNum)
 			}
 		})
 	}

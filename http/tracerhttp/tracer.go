@@ -35,7 +35,7 @@ func GetClient(tracer *go2sky.Tracer, opt ...skyhttp.ClientOption) (*http.Client
 	if len(opt) == 0 {
 		opt = append(opt, PoolOpt())
 	}
-	//http.Get()
+	//http.GetInfo()
 	DefaultClient, err := skyhttp.NewClient(tracer, opt...)
 	return DefaultClient, err
 }

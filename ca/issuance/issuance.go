@@ -28,7 +28,7 @@ type Cert struct {
 }
 type CertOption func(*Cert)
 
-func NewCert(caKey, caCert, csr []byte, opts ...CertOption) *Cert {
+func NewCert(caCert, caKey, csr []byte, opts ...CertOption) *Cert {
 	c := &Cert{
 		caKey:     caKey,
 		caCert:    caCert,

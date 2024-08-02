@@ -22,7 +22,7 @@ func TestCert_Sign(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		{name: "t1", fields: fields{cert: NewCert(caKey, caCert, func() []byte {
+		{name: "t1", fields: fields{cert: NewCert(caCert, caKey, func() []byte {
 			key, err := prvkey.Gen(2048)
 			if err != nil {
 				return nil
@@ -33,7 +33,7 @@ func TestCert_Sign(t *testing.T) {
 			}
 			return csrPem
 		}(), WithDays(10), WithIssueType(IssueTypeServer))}, wantErr: false},
-		{name: "t2", fields: fields{cert: NewCert(caKey, caCert, func() []byte {
+		{name: "t2", fields: fields{cert: NewCert(caCert, caKey, func() []byte {
 			key, err := prvkey.Gen(2048)
 			if err != nil {
 				return nil
@@ -44,7 +44,7 @@ func TestCert_Sign(t *testing.T) {
 			}
 			return csrPem
 		}())}, wantErr: false},
-		{name: "t3", fields: fields{cert: NewCert(caKey, caCert, func() []byte {
+		{name: "t3", fields: fields{cert: NewCert(caCert, caKey, func() []byte {
 			// openssl genpkey -algorithm RSA  -pkeyopt rsa_keygen_bits:2048
 			key := []byte("-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDF16X4mtF7zM26\nHAcsQHhaT8ffHTJRH4/fJDU7GCF9c9o/Q6oNprnsYcC6f4ErkuailMx/jKjomkMP\nPBPDPOtVM2AEykpnWvBQ8j33Ea08KyC8UMAYEfe7WCXtqPfsrc560fforKPENWMF\nSLnRPaDxNv8TuR1QpfzQ7Oxp2WgJ9uuCt1c7z5Hjn3DGBfqtV6AcYUAYHnxo1zvn\n1bsQcSWeNuEEsqZ38cHn57IPvNKhcq/smXm7BqUXnspjBrFOdqd+IF1YDorzQjhS\nQyK/c9QovMMZOqFQJjczIwHqC58ju5Vd453xKqXfvHnpFUAqpx+pLJAodXMqpevo\nrjz0LIYBAgMBAAECggEAG3V6y65xNMWQKCyLslCgY6h/DTB4M1o2FbpoyPLocwkJ\nWY6Co7JoS66lmTzpKKsS563PVESpjN8cP5kPBSIHZ6Phx8hr2zx77kAw6YHCkX9K\n49gxUSXtREtPuFSjVG4rIlDSH7EWab0fKTSW1bvAArqnXI1szCy9kiHQDkDmd7tX\nK+CK1op/RGWud+5Ob+UcZb9gmIOKsf5EnOfMd0TkHRH4sMkM74tLBtod2t26Fu6W\nunvBK8aFVtUH3DZnmqhJmG8ZazD/8UJ4zkluJZCQIz5GV9xB09VwvqqNH2Y/8Gfw\nKUYdda+6YplS6mqSzjLqOuywXVRxX5QiK8k83UrQIQKBgQDh9bmvqtri1TshJxeF\ncDTwTOZbUHLbwoU9v4VU3JcvJ1vbkizaa2BgzeN1UAAfxeUxJ5bG3y4TiucT8Rju\nTPslm4Kfjj68PAuhlLM1QeHsLUcKNeaSKKEAs6zIT9fbiQA6yjzAoBofcKj9Iwp4\n0vTDDk/G++U4ELbvsyxM3VgQJwKBgQDgJPpQO3jpLVLkvWsDljJTpF6SJstIrxL9\nKuRJaLlyBMGkVBPu7mQNDxB9ALStxes5nf0xLu+6YIVQo/Y1zezdgKeYks5eTN9l\naREKkEtFw6qWt5NHqlr68RJgDHxIQgZQaSVvyOzy5ICIJrQsMJWHq43jr3e5v/Ev\n/yZIKm1plwKBgQCK9D+CRcFhaNt54b5XMs97Tu8CDJD1j8O8W0C1FQpr1vpoJpYq\no4mbPkG4bMAGyf3NopjYJ3sATZUY8FTyhqiTUfScBi+SNiK49ObXw3IZeSaMouTt\n0Mph0hxY+rC1sqRPgvqlQk+OMgvZz2irMJ+QLAbnSRSGy9CTy01c32k+VQKBgQDG\nlRxMHxS1idlKHOOFzvkRj6vV0pcB81JgiDKvMyAxezNQcskiQ4TS6QjTpt9sodAQ\nQQAEJjBwMHmMg2dsLeBwMj7J9y7s7zBw+VAGyuZVjdBCLaxHrw9iClkcTZOCtTRA\n45cuXZZIb9fMSHYSPI0OIRjZoyjwobR+sJBrGWPMSwKBgHIL9ypcAK+kW/2IcTfB\n7woa4oH30M/gSeLX9FECXYEa3x+kO/HTfZbjnqq9GjYdT+3DLfmsdBczHh2jaGKS\nrC40hBW3/jKlbuQ+wTMnpgLcFSILP64dMRfOagIO7SE/oalcwhVBZ0bci82EL6/A\nk1xdYiPTpycZA+6DOBDOyyyT\n-----END PRIVATE KEY-----")
 			csrPem, err := csr.NewCsr(key, []string{"CN"}, []string{"BJ"}, []string{"bj3"}, []string{"my_company3"}, []string{"my_department3"}, "t3").Gen()
@@ -53,7 +53,7 @@ func TestCert_Sign(t *testing.T) {
 			}
 			return csrPem
 		}())}, wantErr: false},
-		{name: "t4", fields: fields{cert: NewCert(caKey, caCert, func() []byte {
+		{name: "t4", fields: fields{cert: NewCert(caCert, caKey, func() []byte {
 			key, err := prvkey.Gen(2048)
 			if err != nil {
 				return nil

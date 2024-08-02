@@ -33,14 +33,19 @@ func Ocsp(body, caCert, caPrvKey, crl []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 解析吊销列表
-	ctlBlock, _ := pem.Decode(crl)
-	if ctlBlock == nil {
-		return nil, errors.New("failed to decode PEM block containing CRL")
-	}
-	list, err := x509.ParseRevocationList(ctlBlock.Bytes)
-	if err != nil {
-		return nil, err
+	var list *x509.RevocationList
+	if len(crl) == 0 {
+		list = &x509.RevocationList{}
+	} else {
+		// 解析吊销列表
+		ctlBlock, _ := pem.Decode(crl)
+		if ctlBlock == nil {
+			return nil, errors.New("failed to decode PEM block containing CRL")
+		}
+		list, err = x509.ParseRevocationList(ctlBlock.Bytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 	// 生成OCSP响应
 	resp, err := generateOCSPResponse(req, caCertPem, caPrvKeyPem, list)

@@ -24,7 +24,32 @@ var (
 	cliCertPath string
 )
 
-func Cli(caCert []byte, keyPath, certPath string) error {
+func GetCli(caCert, cert, key []byte) (*http.Client, error) {
+	certPool := x509.NewCertPool()
+	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
+		return nil, errors.New("failed to parse CA certificate")
+	}
+	cli := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				//Certificates: []tls.Certificate{pair}, // 设置客户端证书和私钥
+				RootCAs: certPool, // 设置服务端CA证书池用于验证服务端证书
+				//ClientAuth:            tls.RequireAndVerifyClientCert, // 启用客户端证书验证（即双向证书验证）
+				//VerifyPeerCertificate: Vpc,
+			},
+		},
+	}
+	if len(cert) > 0 && len(key) > 0 {
+		pair, err := tls.X509KeyPair(cert, key)
+		if err != nil {
+			return nil, err
+		}
+		cli.Transport.(*http.Transport).TLSClientConfig.Certificates = []tls.Certificate{pair}
+	}
+	return cli, nil
+}
+
+func Cli(caCert []byte, certPath, keyPath string) error {
 	if caCert == nil {
 		return errors.New("ca cert is nil")
 	}
@@ -34,24 +59,7 @@ func Cli(caCert []byte, keyPath, certPath string) error {
 		return err
 	}
 
-	certPool := x509.NewCertPool()
-	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
-		return errors.New("failed to parse CA certificate")
-	}
-	pair, err := tls.X509KeyPair(cliCert, cliKey)
-	if err != nil {
-		return err
-	}
-	cli := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				Certificates: []tls.Certificate{pair}, // 设置客户端证书和私钥
-				RootCAs:      certPool,                // 设置服务端CA证书池用于验证服务端证书
-				//ClientAuth:            tls.RequireAndVerifyClientCert, // 启用客户端证书验证（即双向证书验证）
-				//VerifyPeerCertificate: Vpc,
-			},
-		},
-	}
+	cli, err := GetCli(caCert, cliCert, cliKey)
 	_, err = cli.Get("https://127.0.0.1:8081/test")
 	return err
 }
@@ -160,3 +168,25 @@ func reqCert(csr []byte) ([]byte, error) {
 	}
 	return cert, nil
 }
+
+//func Revoke() error {
+//	certPool := x509.NewCertPool()
+//	if ok := certPool.AppendCertsFromPEM(caCertByte); !ok {
+//		return errors.New("failed to parse CA certificate")
+//	}
+//	cli := &http.Client{
+//		Transport: &http.Transport{
+//			TLSClientConfig: &tls.Config{
+//				RootCAs: certPool,
+//			},
+//		},
+//	}
+//	resp, err := cli.Post("https://127.0.0.1:8080/revoke", "application/json", bytes.NewBuffer(csrJson))
+//	if err != nil {
+//		return err
+//	}
+//	if resp.StatusCode != http.StatusOK {
+//		return errors.New("failed to revoke certificate")
+//	}
+//	return nil
+//}

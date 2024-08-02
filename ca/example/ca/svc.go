@@ -1,9 +1,13 @@
 package ca
 
 import (
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"os"
 	"path"
 
+	"github.com/agclqq/prow-framework/ca/crl"
 	"github.com/agclqq/prow-framework/ca/csr"
 	"github.com/agclqq/prow-framework/ca/issuance"
 	"github.com/agclqq/prow-framework/ca/prvkey"
@@ -50,11 +54,36 @@ func CreateCaCert(certPath, keyPath string) error {
 		}
 	}
 
-	err = os.WriteFile(keyPath, key, 0660)
+	err = os.WriteFile(keyPath, key, 0600)
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(certPath, cert, 0666)
+	err = os.WriteFile(certPath, cert, 0664)
+	if err != nil {
+		return err
+	}
+	block, _ := pem.Decode(cert)
+	if block == nil || block.Type != "CERTIFICATE" {
+		return errors.New("failed to decode PEM block containing certificate")
+	}
+	caCertPem, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return err
+	}
+
+	block, _ = pem.Decode(key)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		return errors.New("failed to decode PEM block containing private key")
+	}
+	caKeyPem, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+	ctlPem, err := crl.InitCrl(caCertPem, caKeyPem)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(ctlPath, ctlPem, 0664)
 	if err != nil {
 		return err
 	}
@@ -76,11 +105,11 @@ func IssueCaServerCert() ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	cert, err := issuance.NewCert(caKey, caCert, csrByte, issuance.WithIssueType(issuance.IssueTypeServer)).Sign()
+	cert, err := issuance.NewCert(caCert, caKey, csrByte, issuance.WithIssueType(issuance.IssueTypeServer)).Sign()
 	return cert, key, err
 }
 
 func IssueCert(caKeyPath, caCertPath string, csr []byte) ([]byte, error) {
 
-	return issuance.NewCert(caKey, caCert, csr).Sign()
+	return issuance.NewCert(caCert, caKey, csr).Sign()
 }

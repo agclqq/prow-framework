@@ -13,13 +13,20 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/agclqq/prow-framework/ca/info"
 	"github.com/agclqq/prow-framework/ca/issuance"
+	"github.com/agclqq/prow-framework/ca/ocsp"
+	"github.com/agclqq/prow-framework/ca/revoke"
+
+	ocsp1 "golang.org/x/crypto/ocsp"
 )
 
 var (
 	caKey      []byte
 	caCert     []byte
-	caCertPath string
+	caCertPath string = "ca.crt"
+	caKeyPath  string = "ca.key"
+	ctlPath    string = "ctl.pem"
 )
 
 type postData struct {
@@ -51,19 +58,13 @@ func ctlReqCert(writer http.ResponseWriter, request *http.Request) {
 	if t == "1" {
 		issueType = issuance.IssueTypeServer
 	}
-	cert, err := issuance.NewCert(caKey, caCert, pd.Csr, issuance.WithIssueType(issueType)).Sign()
+	cert, err := issuance.NewCert(caCert, caKey, pd.Csr, issuance.WithIssueType(issueType), issuance.WithOcspServer([]string{"https://127.0.0.1:8080/ocsp"}), issuance.WithCrlPoint([]string{"https://127.0.0.1:8080/crl"})).Sign()
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		writer.Write([]byte(err.Error()))
 		return
 	}
-	//resp := response{status: http.StatusOK}
-	//jsonResp, err := json.Marshal(resp)
-	//if err != nil {
-	//	writer.WriteHeader(http.StatusBadRequest)
-	//	writer.Write([]byte(err.Error()))
-	//	return
-	//}
+	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "cert"))
 	writer.Header().Set("Content-Type", "application/octet-stream")
 	writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(cert)))
@@ -71,20 +72,106 @@ func ctlReqCert(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(cert)
 }
 func ctlCert(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "cert"))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(caCert)))
 	w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 	w.Write(caCert)
 }
+func ctlOcsp(w http.ResponseWriter, r *http.Request) {
+	certPem, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("failed to read cert,the certificate to be queried cannot be empty"))
+		return
+	}
+	x509Cert, err := info.NewCert(certPem).GetInfo()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	x509CaCert, err := info.NewCert(caCert).GetInfo()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	ctl, err := os.ReadFile(ctlPath)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	reqOcsp, err := ocsp1.CreateRequest(x509Cert, x509CaCert, nil)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	bytes, err := ocsp.Ocsp(reqOcsp, caCert, caKey, ctl)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	//w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "ocsp"))
+	//w.Header().Set("Content-Type", "application/octet-stream")
+	//w.Header().Set("Content-Length", fmt.Sprintf("%d", len(bytes)))
+	w.Write(bytes)
+}
+func ctlCrl(w http.ResponseWriter, r *http.Request) {
+	ctl, err := os.ReadFile(ctlPath)
+	if err != nil {
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "ctl.pem"))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(ctl)))
+	w.Write(ctl)
+}
+func ctlRevoke(w http.ResponseWriter, r *http.Request) {
+	//TODO:身份验证必须要做，此处省略
+
+	cert, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.Write([]byte("failed to read cert,the certificate to be queried cannot be empty"))
+		return
+	}
+	crl, err := os.ReadFile(ctlPath)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+	newCrl, err := revoke.NewRevoke(caCert, caKey, cert, revoke.WithCrl(crl)).Revoke()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	err = os.WriteFile(ctlPath, newCrl, 0664)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
 func router() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /cert", ctlCert)
 	mux.HandleFunc("POST /reqCert", ctlReqCert)
+	mux.HandleFunc("POST /revoke", ctlRevoke)
+	mux.HandleFunc("POST /ocsp", ctlOcsp)
+	mux.HandleFunc("GET /crl", ctlCrl)
 	return mux
 }
 func Svr(caSvrCertPath, caSvrKeyPath string) error {
-	err := CreateCaCert("ca.crt", "ca.key")
+	err := CreateCaCert(caCertPath, caKeyPath)
 	if err != nil {
 		return err
 	}

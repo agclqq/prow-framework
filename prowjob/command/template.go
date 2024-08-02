@@ -62,7 +62,7 @@ const ConfigTemplate = `
 package config
 ` + imports + consts + vars + `
 var app = map[string]string{
-{{range $key, $value := .ConfData}}	"{{$key}}":	env.Get("{{$value}}"),
+{{range $key, $value := .ConfData}}	"{{$key}}":	env.GetInfo("{{$value}}"),
 {{end}}
 }
 

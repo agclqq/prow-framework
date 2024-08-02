@@ -288,7 +288,7 @@ func (mf *Mf) getFileSize() (int64, error) {
 //	if resp.StatusCode != http.StatusOK {
 //		return 0, fmt.Errorf("requesting the file size status code：%d", resp.StatusCode)
 //	}
-//	sizeStr := resp.Header.Get("Content-Length")
+//	sizeStr := resp.Header.GetInfo("Content-Length")
 //	return strconv.ParseInt(sizeStr, 10, 64)
 //}
 //
