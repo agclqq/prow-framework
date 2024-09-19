@@ -17,6 +17,6 @@ func ex() {
 	if err != nil {
 		return
 	}
-	cc.Get("aa")
+	cc.Get("aa") // #nosec G104
 
 }

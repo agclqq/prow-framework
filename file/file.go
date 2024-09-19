@@ -17,6 +17,7 @@ func Exist(path string) bool {
 }
 
 func Touch(file string) error {
+	file = filepath.Clean(file)
 	if Exist(file) {
 		return nil
 	}
@@ -33,16 +34,18 @@ func Touch(file string) error {
 }
 
 func OpenOrCreate(file string) (*os.File, error) {
+	file = filepath.Clean(file)
 	if err := MakeDirByFile(file); err != nil {
 		return nil, err
 	}
-	return os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	return os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
 }
 
 func MakeDirByFile(file string) error {
 	if !Exist(file) {
 		if dir, _ := filepath.Split(file); !Exist(dir) {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			dir = filepath.Clean(dir)
+			if err := os.MkdirAll(dir, 0750); err != nil {
 				return err
 			}
 		}
@@ -51,10 +54,11 @@ func MakeDirByFile(file string) error {
 }
 
 func ReWrite(file string) (*os.File, error) {
+	file = filepath.Clean(file)
 	if err := MakeDirByFile(file); err != nil {
 		return nil, err
 	}
-	return os.OpenFile(file, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
+	return os.OpenFile(file, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0600)
 }
 
 func ReWriteString(file, content string) error {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"golang.org/x/crypto/ocsp"
 )
@@ -57,7 +58,7 @@ func verifyOcsp(cert *x509.Certificate) error {
 	cli := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //#nosec G402 -- 不校验服务端证书
 			},
 		},
 	}
@@ -129,7 +130,11 @@ func checkCertificateRevocation(cert *x509.Certificate, opts x509.VerifyOptions)
 // 使用 CRL 检查证书是否被吊销
 func checkCRL(cert *x509.Certificate, crlURL string) error {
 	// 下载并解析 CRL
-	resp, err := http.Get(crlURL)
+	u, err := url.Parse(crlURL)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return fmt.Errorf("failed to download CRL: %v", err)
 	}

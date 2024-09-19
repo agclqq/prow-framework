@@ -6,7 +6,8 @@ import (
 	"encoding/pem"
 	"time"
 
-	"github.com/pkg/errors"
+	"errors"
+
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -75,7 +76,7 @@ func generateOCSPResponse(req *ocsp.Request, caCert *x509.Certificate, caPrvKey 
 
 	ocspResponseDER, err := ocsp.CreateResponse(caCert, caCert, ocspResponseTemplate, caPrvKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create OCSP response")
+		return nil, errors.New("failed to create OCSP response")
 	}
 
 	return ocspResponseDER, nil

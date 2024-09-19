@@ -22,7 +22,6 @@ func TestCert_Get(t *testing.T) {
 				t.Errorf("GetInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			t.Logf("cert sha256: %v", got.Sha256)
 			t.Logf("cert signature: %v", got.Signature)
 			t.Logf("cert Issuer: %v", got.Issuer)
 			t.Logf("cert subject: %v", got.Subject)

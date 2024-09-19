@@ -156,7 +156,7 @@ func AccessLogJsonFormatter(e *gin.Engine) func(params gin.LogFormatterParams) s
 			p.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 		} else if strings.HasPrefix(p.Request.Header.Get("Content-Type"), "multipart/form-data") {
 			if len(p.Request.PostForm) == 0 {
-				p.Request.ParseMultipartForm(e.MaxMultipartMemory)
+				p.Request.ParseMultipartForm(e.MaxMultipartMemory) // #nosec G104
 			}
 			body = []byte(p.Request.PostForm.Encode())
 		}

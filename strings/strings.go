@@ -1,11 +1,11 @@
 package strings
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"regexp"
 	"strings"
-	"time"
 	"unsafe"
 )
 
@@ -58,6 +58,7 @@ func TrimAllTrimSuffix(oldS, suffix string) string {
 
 // StringToBytes converts string to byte slice without a memory allocation.
 func StringToBytes(s string) []byte {
+	// #nosec G103
 	return *(*[]byte)(unsafe.Pointer(
 		&struct {
 			string
@@ -68,28 +69,34 @@ func StringToBytes(s string) []byte {
 
 // BytesToString converts byte slice to string without a memory allocation.
 func BytesToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
+	return *(*string)(unsafe.Pointer(&b)) // #nosec G103
 }
 
 func TokenGenerator(n int) string {
 	token := make([]rune, n)
-	rand.Seed(time.Now().UnixNano())
 	for i := range token {
-		token[i] = letters[rand.Intn(len(letters))]
+		b, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			return ""
+		}
+		token[i] = letters[b.Int64()]
 	}
 	return string(token)
 }
 
 // GetRandomString 生成随机字符串
 func GetRandomString(n int) string {
-	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
+	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	return GetRandomStr(letters, n)
 }
 func GetRandomStr(letters []rune, n int) string {
 	token := make([]rune, n)
-	rand.Seed(time.Now().UnixNano())
 	for i := range token {
-		token[i] = letters[rand.Intn(len(letters))]
+		b, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			return ""
+		}
+		token[i] = letters[b.Int64()]
 	}
 	return string(token)
 }

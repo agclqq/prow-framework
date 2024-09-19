@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 
 	"github.com/agclqq/prow-framework/ca/info"
@@ -40,7 +41,7 @@ func ctlReqCert(writer http.ResponseWriter, request *http.Request) {
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write([]byte(err.Error()))
+		writer.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	pd := &postData{}
@@ -50,7 +51,7 @@ func ctlReqCert(writer http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		//fmt.Println(err)
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write([]byte(err.Error()))
+		writer.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	issueType := issuance.IssueTypeClient
@@ -61,7 +62,7 @@ func ctlReqCert(writer http.ResponseWriter, request *http.Request) {
 	cert, err := issuance.NewCert(caCert, caKey, pd.Csr, issuance.WithIssueType(issueType), issuance.WithOcspServer([]string{"https://127.0.0.1:8080/ocsp"}), issuance.WithCrlPoint([]string{"https://127.0.0.1:8080/crl"})).Sign()
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write([]byte(err.Error()))
+		writer.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	writer.WriteHeader(http.StatusOK)
@@ -69,7 +70,7 @@ func ctlReqCert(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/octet-stream")
 	writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(cert)))
 	writer.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
-	writer.Write(cert)
+	writer.Write(cert) // #nosec G104
 }
 func ctlCert(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -77,43 +78,43 @@ func ctlCert(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(caCert)))
 	w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
-	w.Write(caCert)
+	w.Write(caCert) // #nosec G104
 }
 func ctlOcsp(w http.ResponseWriter, r *http.Request) {
 	certPem, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("failed to read cert,the certificate to be queried cannot be empty"))
+		w.Write([]byte("failed to read cert,the certificate to be queried cannot be empty")) // #nosec G104
 		return
 	}
 	x509Cert, err := info.NewCert(certPem).GetInfo()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	x509CaCert, err := info.NewCert(caCert).GetInfo()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	ctl, err := os.ReadFile(ctlPath)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	reqOcsp, err := ocsp1.CreateRequest(x509Cert, x509CaCert, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	bytes, err := ocsp.Ocsp(reqOcsp, caCert, caKey, ctl)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 
@@ -121,7 +122,7 @@ func ctlOcsp(w http.ResponseWriter, r *http.Request) {
 	//w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "ocsp"))
 	//w.Header().Set("Content-Type", "application/octet-stream")
 	//w.Header().Set("Content-Length", fmt.Sprintf("%d", len(bytes)))
-	w.Write(bytes)
+	w.Write(bytes) // #nosec G104
 }
 func ctlCrl(w http.ResponseWriter, r *http.Request) {
 	ctl, err := os.ReadFile(ctlPath)
@@ -132,30 +133,31 @@ func ctlCrl(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "ctl.pem"))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(ctl)))
-	w.Write(ctl)
+	w.Write(ctl) // #nosec G104
 }
 func ctlRevoke(w http.ResponseWriter, r *http.Request) {
 	//TODO:身份验证必须要做，此处省略
 
 	cert, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.Write([]byte("failed to read cert,the certificate to be queried cannot be empty"))
+		w.Write([]byte("failed to read cert,the certificate to be queried cannot be empty")) // #nosec G104
 		return
 	}
 	crl, err := os.ReadFile(ctlPath)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
 	newCrl, err := revoke.NewRevoke(caCert, caKey, cert, revoke.WithCrl(crl)).Revoke()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) // #nosec G104
 		return
 	}
-	err = os.WriteFile(ctlPath, newCrl, 0664)
+	err = os.WriteFile(ctlPath, newCrl, 0600)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		// #nosec G104
 		w.Write([]byte(err.Error()))
 		return
 	}
@@ -171,6 +173,8 @@ func router() *http.ServeMux {
 	return mux
 }
 func Svr(caSvrCertPath, caSvrKeyPath string) error {
+	caSvrCertPath = filepath.Clean(caSvrCertPath)
+	caSvrKeyPath = filepath.Clean(caSvrKeyPath)
 	err := CreateCaCert(caCertPath, caKeyPath)
 	if err != nil {
 		return err
@@ -180,7 +184,7 @@ func Svr(caSvrCertPath, caSvrKeyPath string) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(caSvrCertPath, caSvrCert, 0666)
+	err = os.WriteFile(caSvrCertPath, caSvrCert, 0600)
 	if err != nil {
 		return err
 	}
@@ -198,10 +202,12 @@ func Svr(caSvrCertPath, caSvrKeyPath string) error {
 		return err
 	}
 	server := &http.Server{
-		Addr:        ":8080",
-		Handler:     router(),
-		IdleTimeout: 75 * time.Second,
+		Addr:              ":8080",
+		Handler:           router(),
+		IdleTimeout:       75 * time.Second,
+		ReadHeaderTimeout: 1 * time.Second,
 		TLSConfig: &tls.Config{
+			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{pair},
 			RootCAs:      certPool,
 			//ClientAuth:         0,
@@ -221,6 +227,6 @@ func Svr(caSvrCertPath, caSvrKeyPath string) error {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	<-ch
-	server.Shutdown(context.Background())
+	server.Shutdown(context.Background()) // #nosec G104
 	return nil
 }

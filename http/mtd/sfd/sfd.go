@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,7 +34,7 @@ type Sf struct {
 	lock         *sync.Mutex
 }
 
-const cfgPartStartLine = 4
+var cfgPartStartLine = 1
 
 type SfOption func(*Sf)
 
@@ -138,25 +139,22 @@ func (sf *Sf) download(resume bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	tmpDownloadFile := downloadFile + ".download"
-	tmpCfgFile := downloadFile + ".cfg"
+	tmpDownloadFile := filepath.Clean(downloadFile + ".download")
+	tmpCfgFile := filepath.Clean(downloadFile + ".cfg")
 
 	//并发控制
 	sf.chThread = make(chan struct{}, sf.concurrence)
 	defer close(sf.chThread)
-	for i := 0; i < sf.concurrence; i++ {
-		sf.chThread <- struct{}{}
-	}
 
 	doneFilesMap := make(map[int]struct{})
 	var fHandle *os.File
 	var cfgHandle *os.File
 	if resume {
-		fHandle, err = os.OpenFile(tmpDownloadFile, os.O_RDWR, 0666)
+		fHandle, err = os.OpenFile(tmpDownloadFile, os.O_RDWR, 0600)
 		if err != nil {
 			return "", err
 		}
-		cfgHandle, err = os.OpenFile(tmpCfgFile, os.O_RDWR, 0666)
+		cfgHandle, err = os.OpenFile(tmpCfgFile, os.O_RDWR, 0600)
 		if err != nil {
 			return "", err
 		}
@@ -192,29 +190,28 @@ func (sf *Sf) download(resume bool) (string, error) {
 		err = sf.createCfgFile(cfgHandle, sf.blockSize, numBlocks, sf.concurrence)
 	}
 
-	type downloadPart struct {
-		index   int
-		content []byte
-	}
-
-	partErrs := errors.Join()
+	var partErrs error
 	// 启动多个协程下载文件块
 	for i := int64(0); i < numBlocks; i++ {
 		if _, ok := doneFilesMap[int(i)]; ok && resume {
 			continue
 		}
-		sf.wg.Add(1)
 		start := i * sf.blockSize
 		end := (i + 1) * sf.blockSize
 		if end > fileSize {
 			end = fileSize
 		}
 
-		_ = <-sf.chThread
+		sf.wg.Add(1)
+		sf.chThread <- struct{}{}
 		go func() {
+			defer func() {
+				<-sf.chThread
+				sf.wg.Done()
+			}()
 			err = sf.downloadPart(sf.req, i, start, end, fHandle, cfgHandle, sf.wg, sf.chThread)
 			if err != nil {
-				partErrs = errors.Join(partErrs, err)
+				partErrs = errors.Join(err)
 			}
 		}()
 	}
@@ -222,7 +219,7 @@ func (sf *Sf) download(resume bool) (string, error) {
 	// 等待所有协程完成
 	sf.wg.Wait()
 
-	if len(partErrs.Error()) > 0 {
+	if partErrs != nil && len(partErrs.Error()) > 0 {
 		return "", partErrs
 	}
 	// 合并文件块
@@ -242,9 +239,8 @@ func (sf *Sf) getFileSize() (int64, error) {
 
 func (sf *Sf) createCfgFile(cfgFile *os.File, blockSize, numBlocks int64, concurrence int) error {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("%d\n", blockSize))
-	sb.WriteString(fmt.Sprintf("%d\n", numBlocks))
-	sb.WriteString(fmt.Sprintf("%d\n", concurrence))
+	sb.WriteString(fmt.Sprintf("%d %d\n", blockSize, concurrence))
+	cfgPartStartLine = 1
 	for i := int64(0); i < numBlocks; i++ {
 		sb.WriteString(fmt.Sprintf("%d 0\n", i))
 	}
@@ -252,20 +248,36 @@ func (sf *Sf) createCfgFile(cfgFile *os.File, blockSize, numBlocks int64, concur
 	return err
 }
 
-func (sf *Sf) fillZero(f *os.File, size int64) error {
+func (sf *Sf) fillZero(file *os.File, fileSize int64) error {
 	// 创建一个零字节的Reader，并复制fileSize字节到文件
-	zeroes := io.NopCloser(io.LimitReader(os.Stdin, size))
-	// 将零字节写入文件，直到达到fileSize大小
-	_, err := io.Copy(f, zeroes)
-	if err != nil {
-		return err
+	chunkSize := int64(1 << 20)
+	// 创建一个缓冲区，每次写入 chunkSize 个字节
+	zeroChunk := make([]byte, chunkSize)
+
+	// 逐块写入
+	var writtenBytes int64 = 0
+	for writtenBytes < fileSize {
+		bytesToWrite := chunkSize
+		// 如果剩余的字节数小于 chunkSize，就只写入剩余的字节数
+		if fileSize-writtenBytes < chunkSize {
+			bytesToWrite = fileSize - writtenBytes
+		}
+
+		// 写入文件
+		n, err := file.Write(zeroChunk[:bytesToWrite])
+		if err != nil {
+			return fmt.Errorf("failed to write to file: %v", err)
+		}
+
+		// 累加已写入的字节数
+		writtenBytes += int64(n)
 	}
 	// 确保文件大小正确
-	fileInfo, err := f.Stat()
+	fileInfo, err := file.Stat()
 	if err != nil {
 		return err
 	}
-	if fileInfo.Size() != size {
+	if fileInfo.Size() != fileSize {
 		return errors.New("file size does not match the expected size")
 	}
 	return nil
@@ -278,7 +290,7 @@ func (sf *Sf) getDoneChunks(cfg *os.File) (map[int]struct{}, error) {
 		return nil, err
 	}
 	scanner := bufio.NewScanner(cfg)
-	for i := 1; scanner.Scan(); i++ {
+	for i := 0; scanner.Scan(); i++ {
 		if i >= cfgPartStartLine {
 			s1, s2, found := strings.Cut(scanner.Text(), " ")
 			if !found {
@@ -300,13 +312,12 @@ func (sf *Sf) getDoneChunks(cfg *os.File) (map[int]struct{}, error) {
 	return rs, nil
 }
 
-func (sf *Sf) downloadPart(req *http.Request, lineNum, start, end int64, fHandle, cfgHandle *os.File, wg *sync.WaitGroup, chThread chan struct{}) error {
-	defer func() {
-		wg.Done()
-		chThread <- struct{}{}
-	}()
-
+func (sf *Sf) downloadPart(r *http.Request, lineNum, start, end int64, fHandle, cfgHandle *os.File, wg *sync.WaitGroup, chThread chan struct{}) error {
 	// 打开文件
+	req, err := http.NewRequest(r.Method, r.URL.String(), nil)
+	if err != nil {
+		return err
+	}
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end-1))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -314,43 +325,57 @@ func (sf *Sf) downloadPart(req *http.Request, lineNum, start, end int64, fHandle
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusPartialContent {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	sf.lock.Lock()
 	defer sf.lock.Unlock()
 	// 写入文件块
-	_, err = cfgHandle.Seek(start, 0)
+	buffer := make([]byte, 64*1024)
+	for {
+		n, err := resp.Body.Read(buffer)
+		// 如果读取到文件末尾或者发生错误，则退出循环
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		_, err = fHandle.WriteAt(buffer[:n], start)
+		if err != nil {
+			return err
+		}
+		start += int64(n)
+	}
+
+	//更新配置文件
+	_, err = cfgHandle.Seek(0, 0)
 	if err != nil {
 		return err
 	}
-	_, err = io.CopyN(fHandle, resp.Body, end-start)
+	sb := strings.Builder{}
+	scanner := bufio.NewScanner(cfgHandle)
+	for i := int64(0); scanner.Scan(); i++ {
+		if lineNum == i-int64(cfgPartStartLine) {
+			sb.WriteString(fmt.Sprintf("%d 1\n", lineNum))
+		} else {
+			sb.WriteString(scanner.Text() + "\n")
+		}
+	}
+	err = cfgHandle.Truncate(0)
+	if err != nil {
+		return err
+	}
+	_, err = cfgHandle.Seek(0, 0)
+	if err != nil {
+		return err
+	}
+	_, err = cfgHandle.WriteString(sb.String())
 	if err != nil {
 		return err
 	}
 
-	//更新配置文件
-	scanner := bufio.NewScanner(cfgHandle)
-	foundLine := false
-	for i := int64(1); scanner.Scan(); i++ {
-		if i == lineNum+cfgPartStartLine {
-			foundLine = true
-			s1, _, found := strings.Cut(scanner.Text(), " ")
-			if !found {
-				_, err = cfgHandle.WriteString(fmt.Sprintf("%d 1\n", lineNum))
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-			if s1 != fmt.Sprintf("%d", lineNum) {
-				return errors.New("line number does not match，need to re-download")
-			}
-			_, err = cfgHandle.WriteString(fmt.Sprintf("%d 1\n", lineNum))
-			if err != nil {
-				return err
-			}
-		}
-	}
-	if !foundLine {
-		return errors.New("line number not found")
-	}
 	return nil
 }

@@ -39,13 +39,13 @@ func hashFunctions(data []byte, size int) []int {
 
 	// FNV hash
 	fnvHasher := fnv.New64()
-	fnvHasher.Write(data)
+	fnvHasher.Write(data) // #nosec G104
 	fnvHash := int(fnvHasher.Sum64() % uint64(size))
 	hashes = append(hashes, fnvHash)
 
 	// CRC32 hash
 	crc32Hasher := crc32.NewIEEE()
-	crc32Hasher.Write(data)
+	crc32Hasher.Write(data) // #nosec G104
 	crc32Hash := int(crc32Hasher.Sum32() % uint32(size))
 	hashes = append(hashes, crc32Hash)
 

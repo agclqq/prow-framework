@@ -34,7 +34,7 @@ type SQLLogger struct {
 	traceStr, traceErrStr, traceWarnStr string
 }
 
-// New initialize logger
+// NewSQLLogger  initialize logger
 func NewSQLLogger(writer logger.Writer, config logger.Config) logger.Interface {
 	var (
 		infoStr      = "%s[info] "
@@ -74,28 +74,28 @@ func (l *SQLLogger) LogMode(level logger.LogLevel) logger.Interface {
 }
 
 // Info print info
-func (l SQLLogger) Info(ctx context.Context, msg string, data ...interface{}) {
+func (l *SQLLogger) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info {
 		l.Printf(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Warn print warn messages
-func (l SQLLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
+func (l *SQLLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn {
 		l.Printf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Error print error messages
-func (l SQLLogger) Error(ctx context.Context, msg string, data ...interface{}) {
+func (l *SQLLogger) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error {
 		l.Printf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Trace print sql message
-func (l SQLLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+func (l *SQLLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	if l.LogLevel <= logger.Silent {
 		return
 	}
@@ -127,8 +127,8 @@ func (l SQLLogger) Trace(ctx context.Context, begin time.Time, fc func() (string
 	}
 }
 
-// Trace print sql message
-func (l SQLLogger) ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{}) {
+// ParamsFilter print sql message
+func (l *SQLLogger) ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{}) {
 	if l.Config.ParameterizedQueries {
 		return sql, nil
 	}

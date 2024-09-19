@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/agclqq/prow-framework/ca/csr"
 	"github.com/agclqq/prow-framework/ca/prvkey"
@@ -17,6 +18,8 @@ import (
 )
 
 func CreateSvrCert(caCert []byte, certPath, keyPath, cn string) error {
+	certPath = filepath.Clean(certPath)
+	keyPath = filepath.Clean(keyPath)
 	if file.Exist(keyPath) && file.Exist(certPath) {
 		return nil
 	}
@@ -38,24 +41,24 @@ func CreateSvrCert(caCert []byte, certPath, keyPath, cn string) error {
 
 	kpd := path.Dir(keyPath)
 	if !file.Exist(kpd) {
-		err = os.MkdirAll(kpd, 0666)
+		err = os.MkdirAll(kpd, 0750)
 		if err != nil {
 			return err
 		}
 	}
-	err = os.WriteFile(keyPath, svrKey, 0660)
+	err = os.WriteFile(keyPath, svrKey, 0600)
 	if err != nil {
 		return err
 	}
 
 	cpd := path.Dir(certPath)
 	if !file.Exist(cpd) {
-		err = os.MkdirAll(cpd, 0666)
+		err = os.MkdirAll(cpd, 0750)
 		if err != nil {
 			return err
 		}
 	}
-	err = os.WriteFile(certPath, svrCert, 0666)
+	err = os.WriteFile(certPath, svrCert, 0600)
 	if err != nil {
 		return err
 	}
@@ -85,7 +88,8 @@ func reqCert(caCert, csr []byte) ([]byte, error) {
 	cli := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    certPool,
 			},
 		},
 	}

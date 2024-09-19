@@ -5,15 +5,12 @@ import (
 	"os"
 
 	"github.com/tidwall/gjson"
-
-	"github.com/agclqq/prow-framework/logger"
 )
 
 // AnyToJsonStrList 结构体转 json string
 func AnyToJsonStrList(obj interface{}) string {
 	var jsonBytes, err = json.Marshal(obj)
 	if err != nil {
-		logger.AtomLog.Errorf("AnyToJsonStr err: %s", err)
 		empty := []struct{}{}
 		jsonBytes, _ := json.Marshal(empty)
 		return string(jsonBytes)
@@ -32,7 +29,6 @@ func ToJsonStr(obj interface{}) string {
 	var jsonStr, err = json.Marshal(obj)
 	//var jsonStr, err = json.MarshalIndent(obj, "", "    ")
 	if err != nil {
-		logger.AtomLog.Errorf("ToJsonStr err: %s", err)
 		os.Exit(-1)
 	}
 	return string(jsonStr)
@@ -42,7 +38,7 @@ func ToJsonStr(obj interface{}) string {
 func StrToJsonStr(s string) string {
 	defer func() {
 		if err := recover(); err != nil {
-			logger.AtomLog.Errorf("StrToJsonStr err: \n%v", err)
+			os.Exit(-1)
 		}
 	}()
 	var m map[string]interface{}

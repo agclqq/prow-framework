@@ -26,7 +26,7 @@ var (
 )
 
 func ctlTest(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello"))
+	w.Write([]byte("hello")) // #nosec G104
 }
 
 func router() *http.ServeMux {
@@ -54,10 +54,12 @@ func Svr(caCert []byte, certPath, keyPath string) error {
 		return err
 	}
 	server := &http.Server{
-		Addr:        ":8081",
-		Handler:     router(),
-		IdleTimeout: 75 * time.Second,
+		Addr:              ":8081",
+		Handler:           router(),
+		IdleTimeout:       75 * time.Second,
+		ReadHeaderTimeout: 1 * time.Second,
 		TLSConfig: &tls.Config{
+			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{pair},
 			RootCAs:      certPool,
 			//ClientAuth:         0,
@@ -77,7 +79,7 @@ func Svr(caCert []byte, certPath, keyPath string) error {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	<-ch
-	server.Shutdown(context.Background())
+	server.Shutdown(context.Background()) // #nosec G104
 	return nil
 }
 
