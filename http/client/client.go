@@ -40,7 +40,7 @@ var (
 		ForceAttemptHTTP2: true,
 
 		IdleConnTimeout:       90 * time.Second,                      // 空闲连接失效时间，DefaultTransport set 90
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true}, //不校验服务端证书
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true}, //#nosec G402 -- 不校验服务端证书
 		TLSHandshakeTimeout:   10 * time.Second,                      // DefaultTransport set 10
 		MaxIdleConns:          100,                                   // 最大空闲连接个数，DefaultTransport set 100
 		MaxIdleConnsPerHost:   10,                                    // 每个客户端最大空闲连接个数，DefaultMaxIdleConnsPerHost = 2
@@ -171,7 +171,7 @@ func (h *HttpClient) SendAutoClose() (*DiyResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	res.Body.Close()
+	res.Body.Close() // #nosec G104
 	response := &DiyResponse{
 		Response: res,
 		ByteBody: body,

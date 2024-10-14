@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/agclqq/prow-framework/ca/csr"
 	"github.com/agclqq/prow-framework/ca/prvkey"
@@ -32,6 +33,7 @@ func GetCli(caCert, cert, key []byte) (*http.Client, error) {
 	cli := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
 				//Certificates: []tls.Certificate{pair}, // 设置客户端证书和私钥
 				RootCAs: certPool, // 设置服务端CA证书池用于验证服务端证书
 				//ClientAuth:            tls.RequireAndVerifyClientCert, // 启用客户端证书验证（即双向证书验证）
@@ -65,6 +67,8 @@ func Cli(caCert []byte, certPath, keyPath string) error {
 }
 
 func createCliCert(keyPath, certPath string) error {
+	certPath = filepath.Clean(certPath)
+	keyPath = filepath.Clean(keyPath)
 	if file.Exist(keyPath) && file.Exist(certPath) {
 		if len(cliKey) == 0 || len(cliCert) == 0 {
 			key, err := os.ReadFile(keyPath)
@@ -101,24 +105,24 @@ func createCliCert(keyPath, certPath string) error {
 
 	kpd := path.Dir(keyPath)
 	if !file.Exist(kpd) {
-		err = os.MkdirAll(kpd, 0666)
+		err = os.MkdirAll(kpd, 0750)
 		if err != nil {
 			return err
 		}
 	}
-	err = os.WriteFile(keyPath, cliKey, 0660)
+	err = os.WriteFile(keyPath, cliKey, 0600)
 	if err != nil {
 		return err
 	}
 
 	cpd := path.Dir(certPath)
 	if !file.Exist(cpd) {
-		err = os.MkdirAll(cpd, 0666)
+		err = os.MkdirAll(cpd, 0750)
 		if err != nil {
 			return err
 		}
 	}
-	err = os.WriteFile(certPath, cliCert, 0666)
+	err = os.WriteFile(certPath, cliCert, 0600)
 	if err != nil {
 		return err
 	}
@@ -148,7 +152,8 @@ func reqCert(csr []byte) ([]byte, error) {
 	cli := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    certPool,
 			},
 		},
 	}

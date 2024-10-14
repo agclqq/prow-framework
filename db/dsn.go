@@ -61,6 +61,7 @@ func mysqlDsnDecode(dsn string) (*Config, error) {
 		User:      config.User,
 		Password:  config.Passwd,
 		Dbname:    config.DBName,
+		DbAlias:   config.DBName,
 		Collation: config.Collation,
 		TimeZone:  config.Loc.String(),
 	}

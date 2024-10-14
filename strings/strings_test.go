@@ -49,3 +49,27 @@ func TestToUpFirst(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRandomString(t *testing.T) {
+	type args struct {
+		n int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantLen int
+	}{
+		{name: "t1", args: args{
+			n: 10,
+		}, wantLen: 10},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetRandomString(tt.args.n)
+			t.Logf("GetRandomString() = %v", got)
+			if len(got) != tt.wantLen {
+				t.Errorf("GetRandomString() = %v, len %v, want len %v", got, len(got), tt.wantLen)
+			}
+		})
+	}
+}

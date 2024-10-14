@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/agclqq/prow-framework/ca/crl"
 	"github.com/agclqq/prow-framework/ca/csr"
@@ -17,6 +18,8 @@ import (
 
 // CreateCaCert 创建CA证书
 func CreateCaCert(certPath, keyPath string) error {
+	certPath = filepath.Clean(certPath)
+	keyPath = filepath.Clean(keyPath)
 	if file.Exist(keyPath) && file.Exist(certPath) {
 		caCertPath = certPath
 		if len(caKey) == 0 || len(caCert) == 0 {
@@ -41,14 +44,14 @@ func CreateCaCert(certPath, keyPath string) error {
 	}
 	kpd := path.Dir(keyPath)
 	if !file.Exist(kpd) {
-		err = os.MkdirAll(kpd, 0666)
+		err = os.MkdirAll(kpd, 0750)
 		if err != nil {
 			return err
 		}
 	}
 	cpd := path.Dir(certPath)
 	if !file.Exist(cpd) {
-		err = os.MkdirAll(cpd, 0666)
+		err = os.MkdirAll(cpd, 0750)
 		if err != nil {
 			return err
 		}
@@ -58,7 +61,7 @@ func CreateCaCert(certPath, keyPath string) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(certPath, cert, 0664)
+	err = os.WriteFile(certPath, cert, 0600)
 	if err != nil {
 		return err
 	}
@@ -83,7 +86,7 @@ func CreateCaCert(certPath, keyPath string) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(ctlPath, ctlPem, 0664)
+	err = os.WriteFile(ctlPath, ctlPem, 0600)
 	if err != nil {
 		return err
 	}

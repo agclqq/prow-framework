@@ -58,6 +58,7 @@ func (w *Ws) Receive() {
 		w.rcvChan <- &Msg{Type: msgType, Data: data}
 	}
 ERROR:
+	// #nosec G104
 	w.close(err)
 }
 
@@ -73,6 +74,7 @@ func (w *Ws) Send() {
 		}
 	}
 ERROR:
+	//#nosec G104
 	w.close(err)
 }
 
@@ -90,7 +92,7 @@ func (w *Ws) Close() {
 	defer w.Unlock()
 	close(w.sendChan)
 	close(w.rcvChan)
-	w.conn.Close()
+	w.conn.Close() //#nosec G104
 	w.closed = true
 
 }

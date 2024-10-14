@@ -4,6 +4,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 )
 
 func SaveUploadedFile(file *multipart.FileHeader, dst string) error {
@@ -13,7 +14,7 @@ func SaveUploadedFile(file *multipart.FileHeader, dst string) error {
 	}
 	defer src.Close()
 
-	out, err := os.Create(dst)
+	out, err := os.Create(filepath.Clean(dst))
 	if err != nil {
 		return err
 	}

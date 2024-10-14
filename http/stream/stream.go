@@ -10,22 +10,21 @@ import (
 )
 
 // downloadFromArtifactory 函数从Artifactory下载文件，并返回一个Reader接口
-func downloadFromArtifactory(artifactoryURL, filePath string) (io.ReadCloser, error) {
+func downloadFromArtifactory(artifactoryDomain, filePath string) (io.ReadCloser, error) {
 	// 创建Artifactory的URL
-	u, err := url.Parse(artifactoryURL)
+	u, err := url.Parse(artifactoryDomain)
 	if err != nil {
 		return nil, err
 	}
 	u.Path = filePath
-	artifactoryURL = u.String()
 
 	// 发起HTTP GET请求到Artifactory获取文件
-	resp, err := http.Get(artifactoryURL)
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		resp.Body.Close() // #nosec G104
 		return nil, fmt.Errorf("artifactory returned non-200 status: %d", resp.StatusCode)
 	}
 
@@ -35,11 +34,11 @@ func downloadFromArtifactory(artifactoryURL, filePath string) (io.ReadCloser, er
 // downloadFileHandler 函数处理下载请求，使用流式传输
 func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// 定义Artifactory的URL和文件路径
-	artifactoryURL := "http://your-internal-artifactory-url"
+	artifactoryDomain := "http://your-internal-artifactory-url"
 	filePath := "/path/to/your/file/a"
 
 	// 从Artifactory下载文件
-	reader, err := downloadFromArtifactory(artifactoryURL, filePath)
+	reader, err := downloadFromArtifactory(artifactoryDomain, filePath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -131,5 +130,5 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 文件上传成功，返回响应
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("File uploaded successfully"))
+	w.Write([]byte("File uploaded successfully")) // #nosec G104
 }

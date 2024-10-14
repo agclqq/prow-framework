@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -268,7 +270,7 @@ func TestTLSConfig(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			go svr(t) //开启server
+			svrPort := svr(t) //开启server
 
 			go ocspSvr(t) //开启ocsp server
 
@@ -301,7 +303,7 @@ func TestTLSConfig(t *testing.T) {
 					},
 				},
 			}
-			_, err = cli.Get("https://localhost:8080")
+			_, err = cli.Get("http://localhost:" + svrPort)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetInfo() error = %v, wantErr %v", err, tt.wantErr)
 				time.Sleep(1 * time.Second)
@@ -370,55 +372,44 @@ func ocspSvr(t *testing.T) {
 	<-shutdownOcsp
 	server.Shutdown(nil)
 }
-func svr(t *testing.T) {
+func svr(t *testing.T) string {
 	caCertPool := x509.NewCertPool()
 	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
 		t.Error("failed to parse CA certificate")
-		return
+		return ""
 	}
 	if len(interCert) > 0 {
 		if ok := caCertPool.AppendCertsFromPEM(interCert); !ok {
 			t.Error("failed to parse inter certificate")
-			return
+			return ""
 		}
 	}
+
+	mux := http.NewServeMux()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello"))
+	})
 
 	pair, err := tls.X509KeyPair(svrCert, svrPrvKey)
 	if err != nil {
 		t.Error(err)
-		return
+		return ""
 	}
 
-	server := &http.Server{
-		Addr: ":8080",
-		Handler: func() *http.ServeMux {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("hello"))
-			})
-			return mux
-		}(),
-		TLSConfig: &tls.Config{
-			Certificates: []tls.Certificate{pair},
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			ClientCAs:    caCertPool,
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{pair},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    caCertPool,
 
-			VerifyPeerCertificate: Vpc,
-		},
-		IdleTimeout: 75 * time.Second,
+		VerifyPeerCertificate: Vpc,
 	}
 
-	go func() {
-		err = server.ListenAndServeTLS("", "")
-		if err != nil && !errors.Is(http.ErrServerClosed, err) {
-			t.Error(err)
-			return
-		}
-	}()
-	<-shutdown
-	err = server.Shutdown(nil)
+	server := httptest.NewUnstartedServer(mux)
+	server.TLS = tlsConfig
+	server.StartTLS()
+	urlParse, err := url.Parse(server.URL)
 	if err != nil {
-		t.Error(err)
-		return
+		return ""
 	}
+	return urlParse.Port()
 }

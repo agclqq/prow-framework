@@ -87,7 +87,8 @@ func PrepareDownloadFile(urlStr, saveDir, saveFileName string) (string, error) {
 	if downloadFileName == "" {
 		downloadFileName = GetFileName(urlStr, "download")
 	}
-	err := os.MkdirAll(saveDir, os.ModePerm)
+	saveDir = path.Clean(saveDir)
+	err := os.MkdirAll(saveDir, 0750)
 	if err != nil {
 		return "", err
 	}
@@ -112,6 +113,8 @@ func GetFileName(urlStr string, dft string) string {
 func DownloadPart(req *http.Request, start, end int64, chunkFileName string, wg *sync.WaitGroup, chThread chan struct{}) error {
 	defer wg.Done()
 	defer func() { chThread <- struct{}{} }()
+	chunkFileName = path.Clean(chunkFileName)
+	// #nosec G304
 	chunkFile, err := os.Create(chunkFileName)
 	if err != nil {
 		return err
@@ -183,6 +186,8 @@ func MergeFileBlocks(fHandle *os.File, downloadFile string, numBlocks int64) err
 	// 合并文件块
 	for i := int64(0); i < int64(len(doneFiles)); i++ {
 		chunkFileName := fmt.Sprintf("%s.part.%d.done", downloadFile, i)
+		chunkFileName = path.Clean(chunkFileName)
+		// #nosec G304
 		chunkFile, err := os.Open(chunkFileName)
 		fmt.Println("合并文件块：", chunkFileName)
 		if err != nil {
@@ -192,7 +197,7 @@ func MergeFileBlocks(fHandle *os.File, downloadFile string, numBlocks int64) err
 		if err != nil {
 			return err
 		}
-		chunkFile.Close()
+		chunkFile.Close() // #nosec G104
 		err = os.Remove(chunkFileName)
 		if err != nil {
 			return err
@@ -234,6 +239,7 @@ func GetFilesByPattern(dir string, reg *regexp.Regexp) ([]string, error) {
 
 }
 func ReadDir(dirPath string) ([]os.FileInfo, error) {
+	dirPath = filepath.Clean(dirPath)
 	dir, err := os.Open(dirPath)
 	if err != nil {
 		return nil, err
@@ -244,6 +250,7 @@ func ReadDir(dirPath string) ([]os.FileInfo, error) {
 
 func FileSha256(filePath string) (string, error) {
 	// 打开文件
+	filePath = filepath.Clean(filePath)
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err

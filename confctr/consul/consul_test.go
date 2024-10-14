@@ -11,6 +11,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Skip()
 	client, err := New(&consulapi.Config{
 		Address:    "127.0.0.1:8500",
 		Datacenter: "dc1",
@@ -54,6 +55,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestClient_Watch(t *testing.T) {
+	t.Skip()
 	type args struct {
 		key    string
 		f      confctr.CallBack

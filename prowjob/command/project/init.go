@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -90,7 +91,8 @@ func (a Project) createDirs(ctx *prowjob.Context) error {
 		"resource/views",
 	}
 	for _, dirPath := range dirPaths {
-		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		dirPath = filepath.Clean(dirPath)
+		if err := os.MkdirAll(dirPath, 0750); err != nil {
 			return err
 		}
 	}
@@ -193,7 +195,7 @@ func (a Project) createHttpFiles(ctx *prowjob.Context) error {
 // 创建cmd/httpd/main.go文件
 func (a Project) createHttpd(ctx *prowjob.Context) error {
 	data := command.TemplateData{
-		PackageName: "",
+		PackageName: "main",
 		Imports: []command.ImportTemplate{
 			{ImportName: "context"},
 			{ImportName: "errors"},

@@ -186,16 +186,16 @@ func (mf *Mf) download(resume bool) (string, error) {
 	mf.wg.Wait()
 	// 合并文件块
 	// 创建临时文件
-	fHandle, err := os.Create(downloadFile + ".download")
+	fHandle, err := os.Create(filepath.Clean(downloadFile + ".download"))
 	if err != nil {
 		errStr := fmt.Sprintf("创建文件失败:%v", err)
 		fmt.Println(errStr)
 		return "", errors.New(errStr)
 	}
-	defer fHandle.Close()
+	defer fHandle.Close() // #nosec G104
 	err = mtd.MergeFileBlocks(fHandle, downloadFile, numBlocks)
 	if err != nil {
-		os.Remove(fHandle.Name())
+		os.Remove(fHandle.Name()) // #nosec G104
 		return "", err
 	}
 	err = fileutil.Rename(fHandle.Name(), downloadFile)

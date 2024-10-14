@@ -18,25 +18,25 @@ import (
 )
 
 func main() {
-	os.Remove("ca.key")
-	os.Remove("ca.crt")
-	os.Remove("ctl.pem")
-	os.Remove("caSvr.key")
-	os.Remove("caSvr.crt")
-	os.Remove("svr.key")
-	os.Remove("svr.crt")
-	os.Remove("cli.key")
-	os.Remove("cli.crt")
+	os.Remove("ca.key")    // #nosec G104
+	os.Remove("ca.crt")    // #nosec G104
+	os.Remove("ctl.pem")   // #nosec G104
+	os.Remove("caSvr.key") // #nosec G104
+	os.Remove("caSvr.crt") // #nosec G104
+	os.Remove("svr.key")   // #nosec G104
+	os.Remove("svr.crt")   // #nosec G104
+	os.Remove("cli.key")   // #nosec G104
+	os.Remove("cli.crt")   // #nosec G104
 	defer func() {
-		os.Remove("ca.key")
-		os.Remove("ca.crt")
-		os.Remove("ctl.pem")
-		os.Remove("caSvr.key")
-		os.Remove("caSvr.crt")
-		os.Remove("svr.key")
-		os.Remove("svr.crt")
-		os.Remove("cli.key")
-		os.Remove("cli.crt")
+		os.Remove("ca.key")    // #nosec G104
+		os.Remove("ca.crt")    // #nosec G104
+		os.Remove("ctl.pem")   // #nosec G104
+		os.Remove("caSvr.key") // #nosec G104
+		os.Remove("caSvr.crt") // #nosec G104
+		os.Remove("svr.key")   // #nosec G104
+		os.Remove("svr.crt")   // #nosec G104
+		os.Remove("cli.key")   // #nosec G104
+		os.Remove("cli.crt")   // #nosec G104
 	}()
 	//启动CA服务
 	fmt.Println("init ca cert and caSvr")

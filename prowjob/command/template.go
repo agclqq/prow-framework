@@ -70,7 +70,7 @@ func GetApp(key string) string {
 	return app[key]
 }	
 `
-const HttpdTemplate = `package main
+const HttpdTemplate = pkg + `
 ` + imports + `
 
 func main() {
@@ -282,8 +282,9 @@ type TemplateData struct {
 }
 
 func CreateTemplateFile(filePath string, tpl string, data any) error {
+	filePath = filepath.Clean(filePath)
 	dirPath := filepath.Dir(filePath)
-	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(dirPath, 0750); err != nil {
 		return err
 	}
 
