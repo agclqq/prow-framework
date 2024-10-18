@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const pkg = `package {{.PackageName}}`
@@ -21,8 +24,7 @@ const ({{range .Consts}}
 
 const vars = `{{if gt (len .Vars) 0}}
 var ({{range .Vars}}
-	{{.}}
-{{end}}
+	{{.}}{{end}}
 ){{end}}`
 
 const types = `{{if gt (len .Types) 0}}{{range .Types}}
@@ -30,14 +32,23 @@ type {{.TypeName}} struct { {{range .Fields}}
 	{{.}}{{end}}
 }{{end}}
 {{end}}`
+const interfaces = `{{if gt (len .Interfaces) 0}}{{range .Interfaces}}
+type {{.Name}} interface {
+	{{range .Methods}}{{.}}
+	{{end}}
+}{{end}}
+{{end}}`
 
 const funcs = `{{if gt (len .Funcs) 0}}{{range .Funcs}}
-func {{if .Receiver}}({{.Receiver}} {{.ReceiverType}}) {{end}}{{.FuncName}}({{.Params}}) {{.Results}} {
+func {{if .Receiver}}({{.Receiver}} {{.ReceiverType}}) {{end}}{{.FuncName}}({{.Params}}) {{.ResultType}} {
 	{{.FuncBody}}
 }{{end}}
 {{end}}`
 
-const CommonTemplate = pkg + imports + consts + vars + types + funcs
+const CommonTemplate = pkg + imports + consts + vars + types + interfaces + funcs
+const TmplTemplate = `
+this is view template.
+`
 
 const CommandTemplate = `
 package {{.PackageName}}
@@ -58,17 +69,33 @@ func ({{.Receiver}} {{.ReceiverType}}) Handle(ctx *artisan.Context) {
 
 const EnvTemplate = `{{range $env := .Envs}}{{if eq $env.Type "comment"}}{{$env.Val}}{{else}}{{$env.Key}}={{$env.Val}}{{end}}
 {{end}}`
-const ConfigTemplate = `
+const ConfigSingleMapTemplate = `
 package config
 ` + imports + consts + vars + `
-var app = map[string]string{
-{{range $key, $value := .ConfData}}	"{{$key}}":	env.GetInfo("{{$value}}"),
+var {{.ConfData.ConfName}} = map[string]string{
+{{range $key, $value := .ConfData.Vars}}	"{{$key}}":	autoenv.Get("{{$value}}"),
 {{end}}
 }
 
-func GetApp(key string) string {
+func Get{{.ConfData.ConfName | title}}(key string) string {
 	return app[key]
 }	
+`
+const ConfigDoubleMapTemplate = `
+package config
+` + imports + consts + vars + `
+var {{.ConfData.ConfName}} = map[string]map[string]string{
+{{range $key, $value := .ConfData.VarsM}}	"{{$key}}":	{
+        {{range $k, $v:=$value}}"{{$k}}":autoenv.Get("{{$v}}"),
+		{{end}}    },
+{{end}}
+}
+func GetAll{{.ConfData.ConfName | title}}() map[string]map[string]string {
+	return {{.ConfData.ConfName}}
+}
+func Get{{.ConfData.ConfName | title}}(key string) map[string]string {
+	return {{.ConfData.ConfName}}[key]
+}
 `
 const HttpdTemplate = pkg + `
 ` + imports + `
@@ -109,6 +136,9 @@ func httpServer(wg *sync.WaitGroup) {
 	if config.GetApp("appEnv") == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	//注册事件
+	boot.StartEvent()
+
 	eng := gin.New()
 	eng.RedirectTrailingSlash = false
 	eng.Use(logger.WithConfig(logger.AccessLogConfig(eng,config.GetApp("logFile"),cast.ToInt(config.GetApp("logRetain")))), gin.Recovery())
@@ -228,7 +258,7 @@ option go_package = "{{.PackageName}}";
 package {{.ProtoPkg}};
 {{range .Services}}
 service {{.Name}} {
-  {{range .Funcs}}rpc {{.FuncName}}({{.Params}}) returns({{.Results}});{{end}}
+  {{range .Funcs}}rpc {{.FuncName}}({{.Params}}) returns({{.ResultType}});{{end}}
 }{{end}}
 {{range .Messages}}
 message {{.MsgName}} {
@@ -241,8 +271,12 @@ type FuncTemplate struct {
 	ReceiverType string
 	FuncName     string
 	Params       string
-	Results      string
+	ResultType   string
 	FuncBody     string
+}
+type InterTemplate struct {
+	Name    string
+	Methods []string
 }
 type TypeTemplate struct {
 	TypeName string
@@ -260,16 +294,24 @@ type MessageTemplate struct {
 	MsgName string
 	Fields  []string
 }
+type Kv map[string]string
+type KvM map[string]map[string]string
 type EventTemplate struct {
 	Key  string
 	Val  string
 	Type string
+}
+type ConfTemplate struct {
+	ConfName string
+	Vars     Kv
+	VarsM    KvM
 }
 type TemplateData struct {
 	PackageName string
 	Imports     []ImportTemplate
 	Consts      []string
 	Vars        []string
+	Interfaces  []InterTemplate
 	Types       []TypeTemplate
 	Funcs       []FuncTemplate
 	ProtoPkg    string
@@ -278,7 +320,7 @@ type TemplateData struct {
 	CommandName string
 	IsResource  bool
 	Envs        []EventTemplate
-	ConfData    map[string]string
+	ConfData    ConfTemplate
 }
 
 func CreateTemplateFile(filePath string, tpl string, data any) error {
@@ -294,7 +336,12 @@ func CreateTemplateFile(filePath string, tpl string, data any) error {
 	}
 	defer file.Close()
 	// 解析模板
-	tmpl, err := template.New("GoTemplate").Parse(tpl)
+	tmpl, err := template.New("GoTemplate").Funcs(template.FuncMap{
+		"title": func(s string) string {
+			s = cases.Title(language.English).String(s)
+			return s
+		},
+	}).Parse(tpl)
 	if err != nil {
 		return err
 	}

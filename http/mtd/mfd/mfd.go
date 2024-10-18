@@ -301,7 +301,7 @@ func (mf *Mf) getFileSize() (int64, error) {
 //	}
 //	defer chunkFile.Close()
 //	reqN := &http.Request{
-//		Method:     req.Method,
+//		Methods:     req.Methods,
 //		URL:        req.URL,
 //		Proto:      req.Proto,
 //		ProtoMajor: req.ProtoMajor,
