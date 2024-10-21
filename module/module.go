@@ -26,3 +26,7 @@ func GetNameWithoutErr() string {
 	name, _ := GetName()
 	return name
 }
+
+func GetFrameworkName() string {
+	return "github.com/agclqq/prow-framework"
+}

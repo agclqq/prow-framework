@@ -100,9 +100,9 @@ func createCommandFile(packageName, receiver, receiverType, commandName, usage, 
 		Vars:        nil,
 		Types:       []command.TypeTemplate{{TypeName: receiverType}},
 		Funcs: []command.FuncTemplate{
-			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "GetCommand", Params: "", Results: "string", FuncBody: fmt.Sprintf("return \"command:%s\"", commandName)},
-			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "Usage", Params: "", Results: "string", FuncBody: fmt.Sprintf("return `%s`", usage)},
-			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "Handle", Params: "ctx *prowjob.Context", Results: "", FuncBody: ""},
+			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "GetCommand", Params: "", ResultType: "string", FuncBody: fmt.Sprintf("return \"command:%s\"", commandName)},
+			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "Usage", Params: "", ResultType: "string", FuncBody: fmt.Sprintf("return `%s`", usage)},
+			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "Handle", Params: "ctx *prowjob.Context", ResultType: "", FuncBody: ""},
 		},
 	}
 	return command.CreateTemplateFile(fullCtlPath, command.CommonTemplate, data)

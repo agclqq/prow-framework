@@ -76,11 +76,11 @@ func (a Controller) Handle(ctx *prowjob.Context) {
 func createControllerFile(packageName, receiver, receiverType, ctlPath string, isResource bool) error {
 	var funcs []command.FuncTemplate
 	if isResource {
-		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Index", Params: "ctx *gin.Context", Results: "", FuncBody: ""})
-		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Show", Params: "ctx *gin.Context", Results: "", FuncBody: ""})
-		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Store", Params: "ctx *gin.Context", Results: "", FuncBody: ""})
-		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Update", Params: "ctx *gin.Context", Results: "", FuncBody: ""})
-		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Destroy", Params: "ctx *gin.Context", Results: "", FuncBody: ""})
+		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Index", Params: "ctx *gin.Context", ResultType: "", FuncBody: ""})
+		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Show", Params: "ctx *gin.Context", ResultType: "", FuncBody: ""})
+		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Store", Params: "ctx *gin.Context", ResultType: "", FuncBody: ""})
+		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Update", Params: "ctx *gin.Context", ResultType: "", FuncBody: ""})
+		funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Destroy", Params: "ctx *gin.Context", ResultType: "", FuncBody: ""})
 	}
 	data := command.TemplateData{
 		PackageName: packageName,

@@ -244,8 +244,8 @@ func createModelFile(conf map[string]string, modelPath string, desc [][]string) 
 
 func creatFile(packageName, typeName, receiver, receiverType, tableName, modelPath string, content []string, importList []command.ImportTemplate) error {
 	var funcs []command.FuncTemplate
-	funcs = append(funcs, command.FuncTemplate{FuncName: "New" + typeName, Params: "", Results: receiverType, FuncBody: "return &" + typeName + "{}"})
-	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "TableName", Params: "", Results: "string", FuncBody: "return \"" + tableName + "\""})
+	funcs = append(funcs, command.FuncTemplate{FuncName: "New" + typeName, Params: "", ResultType: receiverType, FuncBody: "return &" + typeName + "{}"})
+	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "TableName", Params: "", ResultType: "string", FuncBody: "return \"" + tableName + "\""})
 
 	data := command.TemplateData{
 		PackageName: packageName,
