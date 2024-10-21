@@ -45,27 +45,22 @@ func {{if .Receiver}}({{.Receiver}} {{.ReceiverType}}) {{end}}{{.FuncName}}({{.P
 }{{end}}
 {{end}}`
 
+const makefileVars = `{{range .Vars}}{{.}}
+{{end}}`
+const makefileRules = `{{if gt (len .MakefileRules) 0}}{{range .MakefileRules}}
+{{.Target}}: {{.Dependencies}}{{if gt (len .Commands) 0}}
+	{{range .Commands}}{{.}}
+	{{end}}
+{{end}}{{end}}{{end}}
+`
+const TextLines = `{{range $text := .TextLines}}{{.}}
+{{end}}`
 const CommonTemplate = pkg + imports + consts + vars + types + interfaces + funcs
 const TmplTemplate = `
 this is view template.
 `
 
-const CommandTemplate = `
-package {{.PackageName}}
-` + imports + consts + vars + types + funcs + `
-{{if gt (len .Vars) 0}}
-
-type {{.ReceiverType}} struct {
-}
-
-func ({{.Receiver}} {{.ReceiverType}}) GetCommand() string {
-	return "command:{{.CommandName}}"
-}
-
-func ({{.Receiver}} {{.ReceiverType}}) Handle(ctx *artisan.Context) {
-
-}
-`
+const MakefileTemplate = makefileVars + makefileRules
 
 const EnvTemplate = `{{range $env := .Envs}}{{if eq $env.Type "comment"}}{{$env.Val}}{{else}}{{$env.Key}}={{$env.Val}}{{end}}
 {{end}}`
@@ -301,26 +296,39 @@ type EventTemplate struct {
 	Val  string
 	Type string
 }
+type TextLineData struct {
+	TextLines []string
+}
 type ConfTemplate struct {
 	ConfName string
 	Vars     Kv
 	VarsM    KvM
 }
+type MakefileData struct {
+	Vars          []string
+	MakefileRules []MakefileRule
+}
+type MakefileRule struct {
+	Target       string
+	Dependencies string
+	Commands     []string
+}
 type TemplateData struct {
-	PackageName string
-	Imports     []ImportTemplate
-	Consts      []string
-	Vars        []string
-	Interfaces  []InterTemplate
-	Types       []TypeTemplate
-	Funcs       []FuncTemplate
-	ProtoPkg    string
-	Services    []ServiceTemplate
-	Messages    []MessageTemplate
-	CommandName string
-	IsResource  bool
-	Envs        []EventTemplate
-	ConfData    ConfTemplate
+	PackageName   string
+	Imports       []ImportTemplate
+	Consts        []string
+	Vars          []string
+	Interfaces    []InterTemplate
+	Types         []TypeTemplate
+	Funcs         []FuncTemplate
+	ProtoPkg      string
+	Services      []ServiceTemplate
+	Messages      []MessageTemplate
+	CommandName   string
+	IsResource    bool
+	Envs          []EventTemplate
+	ConfData      ConfTemplate
+	MakefileRules []MakefileRule
 }
 
 func CreateTemplateFile(filePath string, tpl string, data any) error {

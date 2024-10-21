@@ -100,7 +100,15 @@ func (a Project) createDirs(ctx *prowjob.Context) error {
 }
 
 func (a Project) createFiles(ctx *prowjob.Context) error {
-	err := a.createEnvFiles(ctx)
+	err := a.createReadMeFiles(ctx)
+	if err != nil {
+		return err
+	}
+	err = a.createMakefileFiles(ctx)
+	if err != nil {
+		return err
+	}
+	err = a.createEnvFiles(ctx)
 	if err != nil {
 		return err
 	}
@@ -147,11 +155,59 @@ func (a Project) createFiles(ctx *prowjob.Context) error {
 	}
 	return nil
 }
+func (a Project) createMakefileFiles(ctx *prowjob.Context) error {
+	data := command.MakefileData{
+		Vars: []string{
+			"GO_BIN_DIR=bin",
+		},
+		MakefileRules: []command.MakefileRule{
+			{
+				Target:       ".PHONY",
+				Dependencies: "http-local",
+			},
+			{
+				Target:       "httpd-local",
+				Dependencies: "",
+				Commands: []string{
+					"go build -o $(GO_BIN_DIR)/$@/$@ -v cmd/$@/*.go",
+					"mkdir -p $(GO_BIN_DIR)/$@",
+					"cp .env* $(GO_BIN_DIR)/$@",
+				},
+			},
+			{
+				Target:       "httpd-linux",
+				Dependencies: "",
+				Commands: []string{
+					"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(GO_BIN_DIR)/httpd/httpd -v cmd/httpd/*.go",
+					"mkdir -p $(GO_BIN_DIR)/$@",
+					"cp .env* $(GO_BIN_DIR)/$@/",
+				},
+			},
+			{
+				Target:       "clean",
+				Dependencies: "",
+				Commands: []string{
+					"rm -rf bin",
+				},
+			},
+		},
+	}
+	return command.CreateTemplateFile("Makefile", command.MakefileTemplate, data)
+}
+func (a Project) createReadMeFiles(ctx *prowjob.Context) error {
+	data := command.TextLineData{
+		TextLines: []string{
+			"# 简介",
+			"# 项目介绍",
+		},
+	}
+	return command.CreateTemplateFile("Readme.md", command.TextLines, data)
+}
 
 // 创建.env文件
 func (a Project) createEnvFiles(ctx *prowjob.Context) error {
-	data := command.TemplateData{
-		Vars: []string{
+	data := command.TextLineData{
+		TextLines: []string{
 			"APP_ENV = dev",
 			"HTTP_SERVER_PORT = 8080",
 			"GRPC_SERVER_PORT = 8081",
@@ -185,7 +241,7 @@ func (a Project) createEnvFiles(ctx *prowjob.Context) error {
 		},
 	}
 
-	return command.CreateTemplateFile(".env", command.CommonTemplate, data)
+	return command.CreateTemplateFile(".env", command.TextLines, data)
 }
 func (a Project) createRand(length int) string {
 	randStr := "abcdefghijklmnopqrstuvwxyz0123456789-"
