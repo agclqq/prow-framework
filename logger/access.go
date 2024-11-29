@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -97,6 +98,17 @@ func WithConfig(conf Config) gin.HandlerFunc {
 	}
 }
 
+func AccessStdConfig(e *gin.Engine) Config {
+	return Config{
+		RequestBody: true,
+		LoggerConfig: gin.LoggerConfig{
+			Formatter: AccessLogJsonFormatter(e),
+			Output:    os.Stdout,
+			SkipPaths: nil,
+		},
+	}
+}
+
 func AccessLogConfig(e *gin.Engine, file string, retain int) Config {
 	if retain <= 0 {
 		retain = DefaultRetain
@@ -176,7 +188,7 @@ func AccessLogJsonFormatter(e *gin.Engine) func(params gin.LogFormatterParams) s
 			HttpXForwarded: p.Request.Header.Get("X-Forwarded-For"),
 			RequestBody:    string(body),
 			BodyBytesSent:  p.BodySize,
-			RequestTime:    fmt.Sprintf("%.3f", float32(p.Latency)/10e6),
+			RequestTime:    fmt.Sprintf("%v", p.Latency),
 		}
 		jsonLog, err := json.Marshal(alj)
 		if err != nil {
