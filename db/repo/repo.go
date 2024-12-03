@@ -20,6 +20,23 @@ func ParseWhere(tx *gorm.DB, where any) *gorm.DB {
 	return tx
 }
 
+func SelectOne(tx *gorm.DB, columns string, where any, group string, having any, order string) *gorm.DB {
+	if columns != "" {
+		tx = tx.Select(columns)
+	}
+	tx = ParseWhere(tx, where)
+	if group != "" {
+		tx.Group(group)
+	}
+	if having != nil {
+		tx.Having(having)
+	}
+	if order != "" {
+		tx.Order(order)
+	}
+	tx.Limit(1)
+	return tx
+}
 func Select(tx *gorm.DB, columns string, where any, group string, having any, order string, page, pageSize int) *gorm.DB {
 	if columns != "" {
 		tx = tx.Select(columns)
