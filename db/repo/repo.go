@@ -52,9 +52,7 @@ func SelectOne(tx *gorm.DB, columns string, where any, group string, having any,
 	if group != "" {
 		tx.Group(group)
 	}
-	if having != nil {
-		tx.Having(having)
-	}
+	tx = ParseHaving(tx, having)
 	if order != "" {
 		tx.Order(order)
 	}
@@ -69,9 +67,7 @@ func Select(tx *gorm.DB, columns string, where any, group string, having any, or
 	if group != "" {
 		tx.Group(group)
 	}
-	if having != nil {
-		tx.Having(having)
-	}
+	tx = ParseHaving(tx, having)
 	if order != "" {
 		tx.Order(order)
 	}
