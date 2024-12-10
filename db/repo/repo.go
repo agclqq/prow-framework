@@ -1,8 +1,6 @@
 package repo
 
-import (
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 func BuildMapWhere(tx *gorm.DB, data map[string]any) *gorm.DB {
 	for k, v := range data {
@@ -16,7 +14,33 @@ func ParseWhere(tx *gorm.DB, where any) *gorm.DB {
 		tx = BuildMapWhere(tx, d)
 		return tx
 	}
-	tx = tx.Where(where)
+	if d, ok := where.(string); ok && d != "" {
+		tx = tx.Where(d)
+	}
+	if where != nil {
+		tx = tx.Where(where)
+	}
+	return tx
+}
+
+func BuildMapHaving(tx *gorm.DB, data map[string]any) *gorm.DB {
+	for k, v := range data {
+		tx = tx.Having(k, v)
+	}
+	return tx
+}
+
+func ParseHaving(tx *gorm.DB, having any) *gorm.DB {
+	if d, ok := having.(map[string]any); ok && d != nil {
+		tx = BuildMapHaving(tx, d)
+		return tx
+	}
+	if d, ok := having.(string); ok && d != "" {
+		tx = tx.Having(d)
+	}
+	if having != nil {
+		tx = tx.Having(having)
+	}
 	return tx
 }
 
@@ -66,9 +90,7 @@ func Pagination(tx *gorm.DB, columns string, where any, group string, having any
 	if group != "" {
 		tx.Group(group)
 	}
-	if having != nil {
-		tx.Having(having)
-	}
+	tx = ParseHaving(tx, having)
 	tx.Count(&total)
 	if order != "" {
 		tx.Order(order)
