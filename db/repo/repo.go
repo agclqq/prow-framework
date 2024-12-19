@@ -43,23 +43,10 @@ func ParseHaving(tx *gorm.DB, having any) *gorm.DB {
 	}
 	return tx
 }
-
-func SelectOne(tx *gorm.DB, columns string, where any, group string, having any, order string) *gorm.DB {
-	if columns != "" {
-		tx = tx.Select(columns)
+func Assemble(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) *gorm.DB {
+	if distinct != "" {
+		tx = tx.Distinct(distinct)
 	}
-	tx = ParseWhere(tx, where)
-	if group != "" {
-		tx.Group(group)
-	}
-	tx = ParseHaving(tx, having)
-	if order != "" {
-		tx.Order(order)
-	}
-	tx.Limit(1)
-	return tx
-}
-func Select(tx *gorm.DB, columns string, where any, group string, having any, order string, page, pageSize int) *gorm.DB {
 	if columns != "" {
 		tx = tx.Select(columns)
 	}
@@ -77,8 +64,20 @@ func Select(tx *gorm.DB, columns string, where any, group string, having any, or
 	return tx
 }
 
-func Pagination(tx *gorm.DB, columns string, where any, group string, having any, order string, page, pageSize int) (int64, *gorm.DB) {
+func SelectOne(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string) *gorm.DB {
+	Assemble(tx, distinct, columns, where, group, having, order, 0, 0).Limit(1)
+	return tx
+}
+
+func Select(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) *gorm.DB {
+	return Assemble(tx, distinct, columns, where, group, having, order, 0, 0).Limit(1)
+}
+
+func Pagination(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) (int64, *gorm.DB) {
 	var total int64
+	if distinct != "" {
+		tx = tx.Distinct(distinct)
+	}
 	if columns != "" {
 		tx = tx.Select(columns)
 	}
