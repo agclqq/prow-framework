@@ -70,7 +70,7 @@ func SelectOne(tx *gorm.DB, distinct string, columns string, where any, group st
 }
 
 func Select(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) *gorm.DB {
-	return Assemble(tx, distinct, columns, where, group, having, order, 0, 0).Limit(1)
+	return Assemble(tx, distinct, columns, where, group, having, order, 0, 0)
 }
 
 func Pagination(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) (int64, *gorm.DB) {
