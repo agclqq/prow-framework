@@ -58,8 +58,11 @@ func Assemble(tx *gorm.DB, distinct string, columns string, where any, group str
 	if order != "" {
 		tx.Order(order)
 	}
-	if page > 0 && pageSize > 0 {
-		tx.Limit(pageSize).Offset((page - 1) * pageSize)
+	if page > 0 {
+		tx.Offset((page - 1) * pageSize)
+	}
+	if pageSize > 0 {
+		tx.Limit(pageSize)
 	}
 	return tx
 }
@@ -70,7 +73,7 @@ func SelectOne(tx *gorm.DB, distinct string, columns string, where any, group st
 }
 
 func Select(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) *gorm.DB {
-	return Assemble(tx, distinct, columns, where, group, having, order, 0, 0)
+	return Assemble(tx, distinct, columns, where, group, having, order, page, pageSize)
 }
 
 func Pagination(tx *gorm.DB, distinct string, columns string, where any, group string, having any, order string, page, pageSize int) (int64, *gorm.DB) {
@@ -90,8 +93,11 @@ func Pagination(tx *gorm.DB, distinct string, columns string, where any, group s
 	if order != "" {
 		tx.Order(order)
 	}
-	if page > 0 && pageSize > 0 {
-		tx.Limit(pageSize).Offset((page - 1) * pageSize)
+	if page > 0 {
+		tx.Offset((page - 1) * pageSize)
+	}
+	if pageSize > 0 {
+		tx.Limit(pageSize)
 	}
 	return total, tx
 }
