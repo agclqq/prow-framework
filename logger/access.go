@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agclqq/prow-framework/arrays"
 	lt "github.com/agclqq/prow-framework/times"
 
 	"github.com/gin-gonic/gin"
@@ -162,15 +161,15 @@ func AccessLogJsonFormatter(e *gin.Engine) func(params gin.LogFormatterParams) s
 		//nginx $remote_addr - $remote_user [$time_local]                "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for"
 		//this  $remote_addr                 $time_local   $http_method  $request   $status                  "$http_referer" "$http_user_agent"
 		var body []byte
-		if arrays.InArray(p.Request.Header.Get("Content-Type"), []string{"application/json", "application/json;charset=utf-8", "application/javascript", "text/plain", "text/html", "application/xml", "application/x-www-form-urlencoded"}) {
-			bodyReader := p.Request.Body
-			body, _ = io.ReadAll(bodyReader)
-			p.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-		} else if strings.HasPrefix(p.Request.Header.Get("Content-Type"), "multipart/form-data") {
+		if strings.HasPrefix(p.Request.Header.Get("Content-Type"), "multipart/form-data") {
 			if len(p.Request.PostForm) == 0 {
 				p.Request.ParseMultipartForm(e.MaxMultipartMemory) // #nosec G104
 			}
 			body = []byte(p.Request.PostForm.Encode())
+		} else {
+			bodyReader := p.Request.Body
+			body, _ = io.ReadAll(bodyReader)
+			p.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 		}
 		oneMB := 1 << 10
 		if len(body) > oneMB {
