@@ -252,7 +252,7 @@ func creatFile(packageName, typeName, receiver, receiverType, tableName, modelPa
 		Imports:     importList,
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName, Fields: content}},
+		Types:       []command.TypeTemplate{{Name: typeName, Fields: content}},
 		Funcs:       funcs,
 	}
 	return command.CreateTemplateFile(modelPath, command.CommonTemplate, data)
