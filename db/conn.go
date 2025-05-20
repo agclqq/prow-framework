@@ -1,11 +1,15 @@
 package db
 
 import (
+	"crypto/md5"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"strconv"
 	"time"
+	"sync"
 
 	file2 "github.com/agclqq/prow-framework/file"
 
@@ -18,7 +22,8 @@ import (
 	mylogger "github.com/agclqq/prow-framework/logger"
 )
 
-var dbMap map[string]*gorm.DB
+var dbMap = make(map[string]*gorm.DB)
+var RWLock sync.RWMutex
 
 func GetConn(connName string, conf map[string]string) *gorm.DB {
 	if dbMap == nil {
@@ -113,4 +118,81 @@ func confConvToInt(conf map[string]string, key string) (int, error) {
 		return iv, err
 	}
 	return 0, errors.New("")
+}
+
+type ConnConf struct {
+	Config
+	Log     bool
+	LogType string
+	LogFile string
+
+	MaxOpen     int
+	MaxLife     int
+	MaxIdle     int
+	MaxIdleTime int
+}
+
+func Conn(config *ConnConf) *gorm.DB {
+	sum := md5.Sum([]byte(config.Host + "\n" + config.Port + "\n" + config.User + "\n" + config.Dbname))
+	connName := fmt.Sprintf("%x", sum)
+	RWLock.RLock()
+	db, ok := dbMap[connName]
+	RWLock.RUnlock()
+	if ok {
+		return db
+	}
+	RWLock.Lock()
+	defer RWLock.Unlock()
+	db, ok = dbMap[connName]
+	if ok {
+		return db
+	}
+	db, err := gorm.Open(mysql.Open(Dsn(&config.Config)), &gorm.Config{Logger: setDbLogger(config)})
+	if err != nil {
+		panic(err)
+	}
+	setDbPool(db, config)
+	dbMap[connName] = db
+	return db
+}
+
+func setDbLogger(config *ConnConf) logger.Interface {
+	if config.Log {
+		var writer io.Writer
+		var err error
+		switch config.LogType {
+		case "file":
+			writer, err = file2.OpenOrCreate(config.LogFile)
+			if err != nil {
+				panic(err)
+			}
+		default:
+			writer = os.Stdout
+		}
+		return mylogger.NewSQLLogger(log.New(writer, "\r\n", log.LstdFlags), logger.Config{
+			SlowThreshold:             time.Second,  // 慢 SQL 阈值
+			LogLevel:                  logger.Error, // 日志级别
+			IgnoreRecordNotFoundError: true,         // 忽略ErrRecordNotFound（记录未找到）错误
+			Colorful:                  false,        // 禁用彩色打印
+		})
+	}
+	return nil
+}
+func setDbPool(db *gorm.DB, config *ConnConf) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+	if config.MaxOpen > 0 {
+		sqlDB.SetMaxOpenConns(config.MaxOpen)
+	}
+	if config.MaxLife > 0 {
+		sqlDB.SetConnMaxLifetime(time.Duration(config.MaxLife) * time.Second)
+	}
+	if config.MaxIdle > 0 {
+		sqlDB.SetMaxIdleConns(config.MaxIdle)
+	}
+	if config.MaxIdleTime > 0 {
+		sqlDB.SetConnMaxIdleTime(time.Duration(config.MaxIdleTime) * time.Second)
+	}
 }

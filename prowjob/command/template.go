@@ -28,7 +28,7 @@ var ({{range .Vars}}
 ){{end}}`
 
 const types = `{{if gt (len .Types) 0}}{{range .Types}}
-type {{.TypeName}} struct { {{range .Fields}}
+type {{.Name}} struct { {{range .Fields}}
 	{{.}}{{end}}
 }{{end}}
 {{end}}`
@@ -57,7 +57,9 @@ const TextLines = `{{range $text := .TextLines}}{{.}}
 {{end}}`
 const CommonTemplate = pkg + imports + consts + vars + types + interfaces + funcs
 const TmplTemplate = `
+{{.ViewTemplateDefine}}
 this is view template.
+{{.ViewTemplateEnd}}
 `
 
 const MakefileTemplate = makefileVars + makefileRules
@@ -274,8 +276,8 @@ type InterTemplate struct {
 	Methods []string
 }
 type TypeTemplate struct {
-	TypeName string
-	Fields   []string
+	Name   string
+	Fields []string
 }
 type ImportTemplate struct {
 	Alias      string
@@ -314,21 +316,23 @@ type MakefileRule struct {
 	Commands     []string
 }
 type TemplateData struct {
-	PackageName   string
-	Imports       []ImportTemplate
-	Consts        []string
-	Vars          []string
-	Interfaces    []InterTemplate
-	Types         []TypeTemplate
-	Funcs         []FuncTemplate
-	ProtoPkg      string
-	Services      []ServiceTemplate
-	Messages      []MessageTemplate
-	CommandName   string
-	IsResource    bool
-	Envs          []EventTemplate
-	ConfData      ConfTemplate
-	MakefileRules []MakefileRule
+	PackageName        string
+	Imports            []ImportTemplate
+	Consts             []string
+	Vars               []string
+	Interfaces         []InterTemplate
+	Types              []TypeTemplate
+	Funcs              []FuncTemplate
+	ProtoPkg           string
+	Services           []ServiceTemplate
+	Messages           []MessageTemplate
+	CommandName        string
+	IsResource         bool
+	Envs               []EventTemplate
+	ConfData           ConfTemplate
+	MakefileRules      []MakefileRule
+	ViewTemplateDefine string
+	ViewTemplateEnd    string
 }
 
 func CreateTemplateFile(filePath string, tpl string, data any) error {

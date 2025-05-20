@@ -1,7 +1,6 @@
 package project
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -56,15 +55,15 @@ func (a Project) Handle(ctx *prowjob.Context) {
 		return
 	}
 
-	//格式化文件
-	err = a.formatFiles(ctx)
+	//更新项目依赖
+	err = a.tidy(ctx)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	//更新项目依赖
-	err = a.tidy(ctx)
+	//格式化文件
+	err = a.formatFiles(ctx)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -74,21 +73,29 @@ func (a Project) Handle(ctx *prowjob.Context) {
 // 创建目录结构
 func (a Project) createDirs(ctx *prowjob.Context) error {
 	dirPaths := []string{
-		"app/console/command",
-		"app/events",
-		"app/grpc/controller",
-		"app/grpc/pb",
-		"app/grpc/router",
-		"app/http/controller",
-		"app/http/router",
-		"app/middleware",
+		"app/event",
+		"app/service",
 		"boot",
-		"cmd/httpd",
 		"cmd/grpc",
+		"cmd/httpd",
+		"cmd/job",
 		"config",
-		"domain",
-		"infra",
-		"resource/views",
+		"domain/demo/service",
+		"infra/acl",
+		"infra/db",
+		"infra/queue",
+		"res/views",
+		"ui/console/command",
+		"ui/console/register",
+		"ui/grpc",
+		"ui/grpc/controller",
+		"ui/grpc/pb/demo",
+		"ui/grpc/router",
+		"ui/http",
+		"ui/http/controller",
+		"ui/http/middleware",
+		"ui/http/response",
+		"ui/http/router",
 	}
 	for _, dirPath := range dirPaths {
 		dirPath = filepath.Clean(dirPath)
@@ -334,7 +341,7 @@ func (a Project) createBootFiles(ctx *prowjob.Context) error {
 			{ImportName: "gorm.io/gorm"},
 			{ImportName: "github.com/spf13/cast"},
 			{ImportName: moduleName + "/config"},
-			{ImportName: moduleName + "/app/events/register"},
+			{ImportName: moduleName + "/app/event/register"},
 			{ImportName: frameworkModuleName + "/db"},
 			{ImportName: frameworkModuleName + "/event"},
 		},
@@ -386,7 +393,7 @@ func (a Project) createHttpd(ctx *prowjob.Context) error {
 			{ImportName: "sync"},
 			{ImportName: "time"},
 			{ImportName: moduleName + "/boot"},
-			{ImportName: moduleName + "/app/http/router"},
+			{ImportName: moduleName + "/ui/http/router"},
 			{ImportName: moduleName + "/config"},
 			{ImportName: frameworkModuleName + "/logger"},
 			{Alias: "_", ImportName: frameworkModuleName + "/validator"},
@@ -397,7 +404,7 @@ func (a Project) createHttpd(ctx *prowjob.Context) error {
 	return command.CreateTemplateFile("cmd/httpd/main.go", command.HttpdTemplate, data)
 }
 
-// 创建app/http/controller/demo.go文件
+// 创建ui/http/controller/demo.go文件
 func (a Project) createHttpController(ctx *prowjob.Context) error {
 	typeName := "Demo"
 	receiver := "d"
@@ -411,13 +418,13 @@ func (a Project) createHttpController(ctx *prowjob.Context) error {
 
 	data := command.TemplateData{
 		PackageName: "controller",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/gin-gonic/gin"}, {ImportName: "net/http"}, {ImportName: moduleName + "/domain/demo"}, {ImportName: moduleName + "/app/http/controller/response"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/gin-gonic/gin"}, {ImportName: "net/http"}, {ImportName: moduleName + "/domain/demo"}, {ImportName: moduleName + "/ui/http/response"}},
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName}},
+		Types:       []command.TypeTemplate{{Name: typeName}},
 		Funcs:       funcs,
 	}
-	return command.CreateTemplateFile("app/http/controller/demo.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/http/controller/demo.go", command.CommonTemplate, data)
 }
 func (a Project) createHttpControllerResp(ctx *prowjob.Context) error {
 	var funcs []command.FuncTemplate
@@ -440,7 +447,7 @@ func (a Project) createHttpControllerResp(ctx *prowjob.Context) error {
 			"SERVER_ERROR      = resData{3001, \"服务器错误\"}",
 			"TIMEOUT           = resData{4001, \"访问超时\"}",
 		},
-		Types: []command.TypeTemplate{{TypeName: "resData", Fields: []string{"no  int", "msg string"}}, {TypeName: "Response", Fields: []string{"Code int         `json:\"code\"`", "Msg  string      `json:\"msg\"`", "Data interface{} `json:\"data,omitempty\"`"}}},
+		Types: []command.TypeTemplate{{Name: "resData", Fields: []string{"no  int", "msg string"}}, {Name: "Response", Fields: []string{"Code int         `json:\"code\"`", "Msg  string      `json:\"msg\"`", "Data interface{} `json:\"data,omitempty\"`"}}},
 		Funcs: []command.FuncTemplate{
 			{FuncName: "Success", Params: "ctx context.Context, data ...interface{}", ResultType: "Response", FuncBody: "return getResponse(ctx, SUCCESS, \"\", data...)"},
 			{FuncName: "SuccessWithMsg", Params: "ctx context.Context, msg string, data ...interface{}", ResultType: "Response", FuncBody: "return getResponse(ctx, SUCCESS, msg, data...)"},
@@ -448,10 +455,10 @@ func (a Project) createHttpControllerResp(ctx *prowjob.Context) error {
 			{FuncName: "getResponse", Params: "ctx context.Context, resErr resData, msg string, data ...interface{}", ResultType: "Response", FuncBody: "resMsg := resErr.msg\n\n\tif msg != \"\" {\n\t\tresMsg += \",\" + msg\n\t}\n\tif len(data) > 0 {\n\t\treturn Response{\n\t\t\tCode: resErr.no,\n\t\t\tMsg:  resMsg,\n\t\t\tData: data[0],\n\t\t}\n\t}\n\treturn Response{\n\t\tCode: resErr.no,\n\t\tMsg:  resMsg,\n\t}"},
 		},
 	}
-	return command.CreateTemplateFile("app/http/controller/response/response.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/http/response/response.go", command.CommonTemplate, data)
 }
 
-// 创建app/http/router/router.go文件
+// 创建ui/http/router/router.go文件
 func (a Project) createHttpRouter(ctx *prowjob.Context) error {
 	typeName := ""
 	receiver := ""
@@ -462,13 +469,13 @@ func (a Project) createHttpRouter(ctx *prowjob.Context) error {
 
 	data := command.TemplateData{
 		PackageName: "router",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/gin-gonic/gin"}, {ImportName: moduleName + "/app/http/controller"}, {ImportName: frameworkModuleName + "/http/restful/router"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/gin-gonic/gin"}, {ImportName: moduleName + "/ui/http/controller"}, {ImportName: frameworkModuleName + "/http/restful/router"}},
 		Consts:      nil,
 		Vars:        nil,
 		Types:       nil,
 		Funcs:       funcs,
 	}
-	return command.CreateTemplateFile("app/http/router/router.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/http/router/router.go", command.CommonTemplate, data)
 }
 
 func (a Project) createGrpcFiles(ctx *prowjob.Context) error {
@@ -505,41 +512,42 @@ func (a Project) createGrpcFiles(ctx *prowjob.Context) error {
 }
 
 func (a Project) protocGenGoVersion() error {
-	protocGenGoVersion := "v1.28.1"
-	rs, err := execCommand("protoc-gen-go", "--version")
-	if err != nil {
-		return err
-	}
-	version := strings.Split(rs, " ")
-	if len(version) < 2 {
-		return errors.New("want protoc-gen-go version,but got " + rs)
-	}
-
-	if compareVersions(version[1], protocGenGoVersion) < 0 {
-		return errors.New("it is recommended that protoc-gen-go be at least " + protocGenGoVersion)
-	}
-	return nil
+	//protocGenGoVersion := "v1.28.1"
+	_, err := execCommand("protoc-gen-go", "--version")
+	//if err != nil {
+	//	return err
+	//}
+	//version := strings.Split(rs, " ")
+	//if len(version) < 2 {
+	//	return errors.New("want protoc-gen-go version,but got " + rs)
+	//}
+	//
+	//if compareVersions(version[1], protocGenGoVersion) < 0 {
+	//	return errors.New("it is recommended that protoc-gen-go be at least " + protocGenGoVersion)
+	//}
+	return err
 }
 
 func (a Project) protocGenGoGrpcVersion() error {
-	protocGenGoGrpcVersion := "1.3.0"
-	rs, err := execCommand("protoc-gen-go-grpc", "--version")
-	if err != nil {
-		return err
-	}
-	version := strings.Split(rs, " ")
-	if len(version) < 2 {
-		return errors.New("want protoc-gen-go-grpc version,but got " + rs)
-	}
-
-	if compareVersions(version[1], protocGenGoGrpcVersion) < 0 {
-		return errors.New("it is recommended that protoc-gen-go-grpc be at least " + protocGenGoGrpcVersion)
-	}
-	return nil
+	//protocGenGoGrpcVersion := "1.3.0"
+	_, err := execCommand("protoc-gen-go-grpc", "--version")
+	return err
+	//if err != nil {
+	//	return err
+	//}
+	//version := strings.Split(rs, " ")
+	//if len(version) < 2 {
+	//	return errors.New("want protoc-gen-go-grpc version,but got " + rs)
+	//}
+	//
+	//if compareVersions(version[1], protocGenGoGrpcVersion) < 0 {
+	//	return errors.New("it is recommended that protoc-gen-go-grpc be at least " + protocGenGoGrpcVersion)
+	//}
+	//return nil
 }
 
 func (a Project) buildProto() error {
-	rs, err := execCommand("protoc", "-I=app/grpc/pb", "--go_out=app/grpc/pb", "--go-grpc_out=app/grpc/pb", "app/grpc/pb/demo.proto")
+	rs, err := execCommand("protoc", "-I=ui/grpc/pb", "--go_out=ui/grpc/pb", "--go-grpc_out=ui/grpc/pb", "ui/grpc/pb/demo.proto")
 	if err != nil {
 		fmt.Println(rs)
 		return err
@@ -620,7 +628,7 @@ func (a Project) createGrpc(ctx *prowjob.Context) error {
 			{ImportName: "time"},
 			{ImportName: "google.golang.org/grpc"},
 			{ImportName: "google.golang.org/grpc/keepalive"},
-			{Alias: "grpcRouter", ImportName: moduleName + "/app/grpc/router"},
+			{Alias: "grpcRouter", ImportName: moduleName + "/ui/grpc/router"},
 			{ImportName: moduleName + "/config"},
 		},
 	}
@@ -628,7 +636,7 @@ func (a Project) createGrpc(ctx *prowjob.Context) error {
 	return command.CreateTemplateFile("cmd/grpc/main.go", command.GrpcTemplate, data)
 }
 
-// 创建app/grpc/controller/demo.go文件
+// 创建ui/grpc/controller/demo.go文件
 func (a Project) createGrpcController(ctx *prowjob.Context) error {
 	typeName := "Demo"
 	receiver := "d"
@@ -638,16 +646,16 @@ func (a Project) createGrpcController(ctx *prowjob.Context) error {
 
 	data := command.TemplateData{
 		PackageName: "controller",
-		Imports:     []command.ImportTemplate{{ImportName: "context"}, {ImportName: "google.golang.org/grpc"}, {ImportName: moduleName + "/app/grpc/pb/demo"}},
+		Imports:     []command.ImportTemplate{{ImportName: "context"}, {ImportName: "google.golang.org/grpc"}, {ImportName: moduleName + "/ui/grpc/pb/demo"}},
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName, Fields: []string{"Server *grpc.Server", "demo.UnimplementedDemoServer"}}},
+		Types:       []command.TypeTemplate{{Name: typeName, Fields: []string{"Server *grpc.Server", "demo.UnimplementedDemoServer"}}},
 		Funcs:       funcs,
 	}
-	return command.CreateTemplateFile("app/grpc/controller/demo.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/grpc/controller/demo.go", command.CommonTemplate, data)
 }
 
-// 创建app/grpc/pb/demo.proto文件
+// 创建ui/grpc/pb/demo.proto文件
 func (a Project) createGrpcProto() error {
 	typeName := "Demo"
 	receiver := "d"
@@ -664,16 +672,16 @@ func (a Project) createGrpcProto() error {
 		Imports:     nil,
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName}},
+		Types:       []command.TypeTemplate{{Name: typeName}},
 		Funcs:       funcs,
 		ProtoPkg:    typeName,
 		Services:    []command.ServiceTemplate{{Name: typeName, Funcs: funcs}},
 		Messages:    msg,
 	}
-	return command.CreateTemplateFile("app/grpc/pb/demo.proto", command.ProtoTemplate, data)
+	return command.CreateTemplateFile("ui/grpc/pb/demo.proto", command.ProtoTemplate, data)
 }
 
-// 创建app/grpc/router/router.go文件
+// 创建ui/grpc/router/router.go文件
 func (a Project) createGrpcRouter() error {
 	typeName := ""
 	receiver := ""
@@ -683,13 +691,13 @@ func (a Project) createGrpcRouter() error {
 
 	data := command.TemplateData{
 		PackageName: "router",
-		Imports:     []command.ImportTemplate{{ImportName: moduleName + "/app/grpc/controller"}, {ImportName: moduleName + "/app/grpc/pb/demo"}, {ImportName: "google.golang.org/grpc"}},
+		Imports:     []command.ImportTemplate{{ImportName: moduleName + "/ui/grpc/controller"}, {ImportName: moduleName + "/ui/grpc/pb/demo"}, {ImportName: "google.golang.org/grpc"}},
 		Consts:      nil,
 		Vars:        nil,
 		Types:       nil,
 		Funcs:       funcs,
 	}
-	return command.CreateTemplateFile("app/grpc/router/router.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/grpc/router/router.go", command.CommonTemplate, data)
 }
 
 func (a Project) createCommandFiles(ctx *prowjob.Context) error {
@@ -716,7 +724,7 @@ func (a Project) createCommandCmd(ctx *prowjob.Context) error {
 
 	data := command.TemplateData{
 		PackageName: "main",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {Alias: "prowjobreg", ImportName: frameworkModuleName + "/prowjob/register"}, {ImportName: moduleName + "/app/console/register"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {Alias: "prowjobreg", ImportName: frameworkModuleName + "/prowjob/register"}, {ImportName: moduleName + "/ui/console/register"}},
 		Consts:      nil,
 		Vars:        nil,
 		Types:       nil,
@@ -725,7 +733,7 @@ func (a Project) createCommandCmd(ctx *prowjob.Context) error {
 	return command.CreateTemplateFile("cmd/job/main.go", command.CommonTemplate, data)
 }
 
-// 创建app/console/command/demo.go文件
+// 创建ui/console/command/demo.go文件
 func (a Project) createCommand(ctx *prowjob.Context) error {
 	typeName := "Demo"
 	receiver := "d"
@@ -740,13 +748,13 @@ func (a Project) createCommand(ctx *prowjob.Context) error {
 		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {ImportName: "fmt"}},
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName}},
+		Types:       []command.TypeTemplate{{Name: typeName}},
 		Funcs:       funcs,
 	}
-	return command.CreateTemplateFile("app/console/command/demo.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/console/command/demo.go", command.CommonTemplate, data)
 }
 
-// 创建app/console/command/register.go文件
+// 创建ui/console/command/register.go文件
 func (a Project) createCommandRegister(ctx *prowjob.Context) error {
 	typeName := ""
 	receiver := ""
@@ -759,13 +767,13 @@ func (a Project) createCommandRegister(ctx *prowjob.Context) error {
 	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Register", Params: "eng *prowjob.CommandEngine", ResultType: "", FuncBody: "eng.Add(&command.Demo{})"})
 	data := command.TemplateData{
 		PackageName: "register",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {ImportName: mn + "/app/console/command"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}, {ImportName: mn + "/ui/console/command"}},
 		Consts:      nil,
 		Vars:        nil,
 		Types:       nil,
 		Funcs:       funcs,
 	}
-	return command.CreateTemplateFile("app/console/register/register.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("ui/console/register/register.go", command.CommonTemplate, data)
 }
 
 func (a Project) createEventFiles(ctx *prowjob.Context) error {
@@ -782,22 +790,22 @@ func (a Project) createEventFiles(ctx *prowjob.Context) error {
 func (a Project) createEventRegister(ctx *prowjob.Context) error {
 	data := command.TemplateData{
 		PackageName: "register",
-		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prow-framework/event"}, {ImportName: moduleName + "/app/events"}},
-		Types:       []command.TypeTemplate{{TypeName: "Demo"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prow-framework/event"}, {ImportName: moduleName + "/app/event"}},
+		Types:       []command.TypeTemplate{{Name: "Demo"}},
 		Funcs: []command.FuncTemplate{
 			{
 				FuncName: "Register",
-				FuncBody: "event.Register(&events.Demo{})",
+				FuncBody: "event.Register(&event.Demo{})",
 			},
 		},
 	}
-	return command.CreateTemplateFile("app/events/register/register.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("app/event/register/register.go", command.CommonTemplate, data)
 }
 func (a Project) createEventDemoFiles(ctx *prowjob.Context) error {
 	data := command.TemplateData{
-		PackageName: "events",
+		PackageName: "event",
 		Imports:     []command.ImportTemplate{{ImportName: "context"}, {ImportName: "fmt"}},
-		Types:       []command.TypeTemplate{{TypeName: "Demo"}},
+		Types:       []command.TypeTemplate{{Name: "Demo"}},
 		Funcs: []command.FuncTemplate{
 			{
 				Receiver:     "d",
@@ -825,16 +833,16 @@ func (a Project) createEventDemoFiles(ctx *prowjob.Context) error {
 			},
 		},
 	}
-	return command.CreateTemplateFile("app/events/demo.go", command.CommonTemplate, data)
+	return command.CreateTemplateFile("app/event/demo.go", command.CommonTemplate, data)
 }
 
 // 创建domain示例相关的文件
 func (a Project) createDomainDemoFiles(ctx *prowjob.Context) error {
-	err := a.createDemoAggRoot(ctx)
-	if err != nil {
-		return err
-	}
-	err = a.createDemoAggService(ctx)
+	//err := a.createDemoAggRoot(ctx)
+	//if err != nil {
+	//	return err
+	//}
+	err := a.createDemoAggService(ctx)
 	if err != nil {
 		return err
 	}
@@ -882,7 +890,7 @@ func (a Project) createDemoAgg(ctx *prowjob.Context) error {
 		Imports:     []command.ImportTemplate{{ImportName: "context"}},
 		Consts:      nil,
 		Vars:        []string{"_ Demo=(*DemoAgg)(nil)"},
-		Types:       []command.TypeTemplate{{TypeName: typeName}},
+		Types:       []command.TypeTemplate{{Name: typeName}},
 		Funcs:       funcs,
 	}
 	return command.CreateTemplateFile("domain/demo/agg.go", command.CommonTemplate, data)
@@ -897,25 +905,31 @@ func (a Project) createDemoAggEntity(ctx *prowjob.Context) error {
 		Imports:     nil,
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName, Fields: []string{"Id int    `json:\"id\" gorm:\"primary_key;auto_increment`", "Name string `json:\"name omitempty\"`", "Status int `json:\"status\"`"}}},
+		Types:       []command.TypeTemplate{{Name: typeName, Fields: []string{"Id int    `json:\"id\" gorm:\"primary_key;auto_increment\"`", "Name string `json:\"name omitempty\"`", "Status int `json:\"status\"`"}}},
 	}
 
 	return command.CreateTemplateFile("domain/demo/entity.go", command.CommonTemplate, data)
 }
 func (a Project) createDemoAggRepo(ctx *prowjob.Context) error {
-	typeName := "DemoRepo"
+	typeName := "Repo"
+	typeNameImpl := typeName + "Impl"
+	entityName := "EntityA"
+	tableName := "demo_table"
 	receiver := strings.ToLower(typeName[0:1])
 	receiverType := "*" + typeName
 	var funcs []command.FuncTemplate
-	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "TableName", Params: "", ResultType: "string", FuncBody: "return \"demo_table\""})
-	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "Select", Params: "ctx context.Context,where any", ResultType: "*EntityA", FuncBody: "return &EntityA{Id: 1,Name: \"aa\",Status: 1}"})
+	funcs = append(funcs, command.FuncTemplate{FuncName: "New" + typeName, Params: "db *gorm.DB", ResultType: typeName, FuncBody: "return &" + typeNameImpl + "{table: \"" + tableName + "\", db: db, R: repo.NewRepo[" + entityName + "](db, \"" + tableName + "\")}"})
+	funcs = append(funcs, command.FuncTemplate{Receiver: receiver, ReceiverType: receiverType, FuncName: "TableName", Params: "", ResultType: "string", FuncBody: "return \"" + entityName + "\""})
 	data := command.TemplateData{
 		PackageName: "demo",
-		Imports:     []command.ImportTemplate{{ImportName: "context"}},
+		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prow-framework/db/repo"}, {ImportName: "gorm.io/gorm"}},
 		Consts:      nil,
-		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: typeName}},
-		Funcs:       funcs,
+		Vars:        []string{"_ Repo = (*" + typeNameImpl + ")(nil)"},
+		Interfaces:  []command.InterTemplate{{Name: typeName, Methods: []string{"repo.R[" + entityName + "]", "TableName() string"}}},
+		Types: []command.TypeTemplate{{Name: typeNameImpl, Fields: []string{"table string",
+			"db    *gorm.DB",
+			"repo.R[" + entityName + "]"}}},
+		Funcs: funcs,
 	}
 
 	return command.CreateTemplateFile("domain/demo/repo.go", command.CommonTemplate, data)
@@ -942,7 +956,11 @@ func (a Project) createDemoAggVo(ctx *prowjob.Context) error {
 }
 
 func (a Project) createViewFiles(ctx *prowjob.Context) error {
-	return command.CreateTemplateFile("resource/views/index/index.tmpl", command.TmplTemplate, nil)
+	data := command.TemplateData{
+		ViewTemplateDefine: "{{define \"index/index.tmpl\"}}",
+		ViewTemplateEnd:    "{{end}}",
+	}
+	return command.CreateTemplateFile("res/views/index/index.tmpl", command.TmplTemplate, data)
 }
 
 func (a Project) tidy(ctx *prowjob.Context) error {
@@ -956,11 +974,6 @@ func (a Project) tidy(ctx *prowjob.Context) error {
 
 func (a Project) formatFiles(ctx *prowjob.Context) error {
 	s, err := execCommand("gofmt", "-w", "-s", ".")
-	if err != nil {
-		fmt.Println(s)
-		return err
-	}
-	s, err = execCommand("go", "mod", "tidy")
 	if err != nil {
 		fmt.Println(s)
 		return err

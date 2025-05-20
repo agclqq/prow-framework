@@ -87,7 +87,7 @@ func createControllerFile(packageName, receiver, receiverType, ctlPath string, i
 		Imports:     []command.ImportTemplate{{ImportName: "github.com/gin-gonic/gin"}},
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: receiverType}},
+		Types:       []command.TypeTemplate{{Name: receiverType}},
 		Funcs:       funcs,
 	}
 	return command.CreateTemplateFile(ctlPath, command.CommonTemplate, data)

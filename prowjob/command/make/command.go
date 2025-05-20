@@ -98,7 +98,7 @@ func createCommandFile(packageName, receiver, receiverType, commandName, usage, 
 		Imports:     []command.ImportTemplate{{ImportName: "github.com/agclqq/prowjob"}},
 		Consts:      nil,
 		Vars:        nil,
-		Types:       []command.TypeTemplate{{TypeName: receiverType}},
+		Types:       []command.TypeTemplate{{Name: receiverType}},
 		Funcs: []command.FuncTemplate{
 			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "GetCommand", Params: "", ResultType: "string", FuncBody: fmt.Sprintf("return \"command:%s\"", commandName)},
 			{Receiver: receiver, ReceiverType: "*" + receiverType, FuncName: "Usage", Params: "", ResultType: "string", FuncBody: fmt.Sprintf("return `%s`", usage)},
